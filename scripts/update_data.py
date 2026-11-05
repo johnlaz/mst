@@ -109,7 +109,8 @@ def fetch_prices(tickers, period="2y", chunk=80):
             continue
         for t in part:
             try:
-                sub = df[t][["High", "Low", "Close"]].dropna()
+                cols = ["High", "Low", "Close"] + (["Volume"] if "Volume" in df[t].columns else [])
+                sub = df[t][cols].dropna(subset=["High", "Low", "Close"])
                 if len(sub) > 30:
                     out[t] = sub
             except Exception:
@@ -125,7 +126,7 @@ def fallback_etf(sym):
         df = pd.read_csv(io.StringIO(r.text))
         df = df.rename(columns=str.title).set_index("Date")
         df.index = pd.to_datetime(df.index)
-        df = df[["High", "Low", "Close"]].dropna().tail(600)
+        df = df[[c for c in ("High", "Low", "Close", "Volume") if c in df.columns]].dropna(subset=["High", "Low", "Close"]).tail(600)
         if len(df) > 100:
             print(f"  {sym}: using Stooq fallback")
             return df
@@ -140,7 +141,8 @@ def fallback_etf(sym):
             data = data if isinstance(data, list) else data.get("historical", [])
             df = pd.DataFrame(data).rename(columns=str.title)
             df["Date"] = pd.to_datetime(df["Date"])
-            df = df.set_index("Date").sort_index()[["High", "Low", "Close"]].dropna().tail(600)
+            df = df.set_index("Date").sort_index()
+            df = df[[c for c in ("High", "Low", "Close", "Volume") if c in df.columns]].dropna(subset=["High", "Low", "Close"]).tail(600)
             if len(df) > 100:
                 print(f"  {sym}: using FMP fallback")
                 return df
@@ -348,6 +350,55 @@ def series_for(df):
     return dict(c=c, uo=ultimate_oscillator(h, l, c), rsi=rsi(c), s50=sma(c, 50), s200=sma(c, 200))
 
 
+def internals(df, cons, prices, days):
+    """Breadth history (% of members above their 50/200-day average), 52-week highs/lows, ETF volume ratio.
+    Uses the same price downloads as everything else. Members are today's list, so older values are approximate."""
+    dates = df.index[-days:]
+    a50, a200, nh, nl = {}, {}, {}, {}
+    for tk, _, _ in cons:
+        p = prices.get(tk)
+        if p is None:
+            continue
+        c = p["Close"].astype(float)
+        m50, m200 = c.rolling(50), c.rolling(200)
+        ok50, ok200 = m50.count() >= 50, m200.count() >= 200
+        a50[tk] = (c > m50.mean()).astype(float).where(ok50)
+        a200[tk] = (c > m200.mean()).astype(float).where(ok200)
+        okh = c.rolling(252, min_periods=200).count() >= 200
+        nh[tk] = (c >= c.rolling(252, min_periods=200).max()).astype(float).where(okh)
+        nl[tk] = (c <= c.rolling(252, min_periods=200).min()).astype(float).where(okh)
+    out = {}
+    need = max(1, 0.6 * len(cons))
+    for name, d in (("b50", a50), ("b200", a200), ("nh", nh), ("nl", nl)):
+        if not d:
+            continue
+        m = pd.DataFrame(d).reindex(dates)
+        pct = m.mean(axis=1) * 100
+        pct[m.count(axis=1) < need] = np.nan
+        out[name] = pct
+    vol = None
+    if "Volume" in df.columns:
+        v = df["Volume"].astype(float)
+        if (v.tail(60) > 0).sum() >= 50:
+            vol = v / v.rolling(50, min_periods=30).mean().shift(1)
+    return out, vol
+
+
+def vix_block(vdf):
+    """VIX level, 5-day change and where it sits versus the past year. {} if unavailable."""
+    try:
+        c = vdf["Close"].astype(float).dropna()
+        if len(c) < 60:
+            return {}
+        last = float(c.iloc[-1])
+        yr = c.tail(252)
+        return dict(vix=r2(last), vix5=r2(last - float(c.iloc[-6])), vixpct=round(float((yr < last).mean() * 100)),
+                    vixdate=c.index[-1].strftime("%Y-%m-%d"))
+    except Exception as e:  # noqa
+        print(f"  VIX skipped ({e})", file=sys.stderr)
+        return {}
+
+
 def build_index(sym, df, cons, prices, eq_df):
     s = series_for(df)
     dates = [d.strftime("%Y-%m-%d") for d in df.index]
@@ -357,6 +408,17 @@ def build_index(sym, df, cons, prices, eq_df):
                     s50=r2(s["s50"][i]), s200=r2(s["s200"][i])) for i in range(start, n)]
     last = n - 1
     peak = float(np.max(s["c"][-252:]))
+    try:
+        inter, vol = internals(df, cons, prices, len(history))
+        for i, row in enumerate(history):
+            d = df.index[start + i]
+            for k, ser in inter.items():
+                if d in ser.index and np.isfinite(ser.loc[d]):
+                    row[k] = round(float(ser.loc[d]), 1)
+            if vol is not None and np.isfinite(vol.iloc[start + i]):
+                row["vx"] = round(float(vol.iloc[start + i]), 2)
+    except Exception as e:  # noqa
+        print(f"  {sym}: market internals skipped ({e})", file=sys.stderr)
 
     watch, a50, a200, n50, n200 = [], 0, 0, 0, 0
     for tk, name, sector in cons:
@@ -401,7 +463,7 @@ def main():
     cons = {sym: get_constituents(sym, cfg, prev) for sym, cfg in INDICES.items()}
 
     etfs = set(INDICES) | {c["eq"] for c in INDICES.values() if c["eq"]}
-    everything = sorted(etfs | {t for lst in cons.values() for t, _, _ in lst})
+    everything = sorted(etfs | {t for lst in cons.values() for t, _, _ in lst} | {"^VIX"})
     print(f"Downloading {len(everything)} tickers…")
     prices = fetch_prices(everything)
 
@@ -425,6 +487,10 @@ def main():
             if sym in prev.get("indices", {}):
                 result[sym] = prev["indices"][sym]
             continue
+        if "^VIX" in prices:
+            result[sym]["index"].update(vix_block(prices["^VIX"]))
+        else:
+            print(f"{sym}: no VIX data this run", file=sys.stderr)
         try:
             result[sym]["index"].update(concentration(sym, cons[sym], prices))
         except Exception as e:  # noqa
