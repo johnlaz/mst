@@ -69,6 +69,8 @@ h1{font-size:18px;margin:0;font-weight:700;letter-spacing:-.01em}
 .gauge .mid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#3a4a66}
 .gauge .mk{position:absolute;top:-4px;width:4px;height:16px;margin-left:-2px;border-radius:2px;background:#fff;box-shadow:0 0 0 2px var(--panel)}
 .gl{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:6px}
+.intro{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;font-size:12px;line-height:1.5;color:var(--mut);background:#0a0f19;border:1px solid var(--line);border-radius:9px;padding:9px 12px;margin-bottom:14px}
+.intro b{color:#cbd5e1}
 .hero{display:flex;gap:22px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .hero .st{font-size:22px;font-weight:800;letter-spacing:-.01em}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -129,6 +131,15 @@ legend{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--
 .f label{font-size:11px;color:var(--mut);display:block}
 .f label input{margin-top:4px}
 @media(max-width:520px){.f{grid-template-columns:1fr 1fr}}
+.hb{padding:12px;border:1px solid var(--line);background:#0a0f19;border-radius:10px;margin-bottom:10px}
+.hb.hbase{background:transparent;border-style:dashed}
+.hbt{font-size:13px;display:flex;align-items:center;flex-wrap:wrap;gap:2px}
+.hbs{font-size:11px;color:var(--mut);margin:3px 0 10px}
+.hcells{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.hh{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px}
+.hv{font-size:17px;font-weight:700}
+.hs{font-size:11px;color:#cbd5e1;margin-top:2px;line-height:1.35}
+.hw{font-size:10px;color:var(--dim);margin-top:2px}
 .msg{font-size:11px;margin-top:6px;color:var(--mut)}
 .fmpstat{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .fmpstat.on{padding:8px 10px;border:1px solid rgba(52,211,153,.35);background:var(--os-bg);border-radius:9px}
@@ -206,6 +217,7 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
   <div id="idxStrip" class="grid strip"></div>
 
   <section class="card" style="margin-top:14px">
+    <div id="intro" class="intro"><span><b>What this shows:</b> whether the market is stretched <span class="c-os">down (oversold: bounces get more likely)</span> or <span class="c-ob">up (overbought: pullbacks get more likely)</span>. It reads where things stand today; it doesn't predict.</span><button class="x" onclick="hideIntro()" title="Hide this" aria-label="Hide this">✕</button></div>
     <div class="hero">
       <div style="min-width:240px">
         <div class="lbl" id="heroLbl">Status</div>
@@ -229,9 +241,16 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
       <ul>
         <li><b>Oversold</b>: price has dropped fast or far. Bounces tend to become more likely, but never guaranteed.</li>
         <li><b>Overbought</b>: price has climbed fast or far. Pullbacks tend to become more likely, but never guaranteed.</li>
-        <li><b>Ultimate Oscillator and RSI</b>: 0–100 momentum gauges. Low = beaten down, high = stretched up.</li>
-        <li><b>Breadth</b>: the share of the index's stocks trading above their average price. Low = few stocks participating.</li>
-        <li><b>Leaning</b>: several gauges agree, but the main gauge has not crossed its line yet.</li>
+        <li><b>Leaning</b>: several checks agree, but the main momentum score has not crossed its line yet.</li>
+        <li><b>Momentum score (Ultimate Oscillator, "UO")</b>: a 0–100 gauge of how hard price has been pushed down or up recently. Low = beaten down, high = stretched up. It decides the main status.</li>
+        <li><b>RSI</b>: another 0–100 momentum gauge. Under about 30 = oversold, over about 70 = overbought. Shown in the chart and stock list.</li>
+        <li><b>Breadth</b>: the share of the index's stocks trading above their 50-day average. Low = few stocks participating, high = most are.</li>
+        <li><b>50-day / 200-day average</b>: the average closing price over the last 50 or 200 trading days. The 200-day is the long-term trend line.</li>
+        <li><b>52-week high / pullback</b>: the highest close in the past year, and how far price is below it.</li>
+        <li><b>VIX</b>: the market's fear level, based on how much traders expect stocks to swing. Above about 30 = nervous, below about 15 = calm.</li>
+        <li><b>New highs / lows</b>: the share of stocks at a 52-week high or low today.</li>
+        <li><b>Cap-weight vs equal-weight</b>: the normal index counts big companies more. The equal-weight version counts every stock the same. A gap shows whether a few giants are carrying the index.</li>
+        <li><b>Checks</b>: four tests on each side (oversold and overbought). The more that agree, the stronger the case.</li>
       </ul>
     </details>
   </section>
@@ -244,7 +263,7 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
         <div><h2>History</h2><div class="hint" id="chartHint"></div></div>
         <div class="row">
           <div class="tabs" id="tabsMetric">
-            <button data-v="price" class="on">Price</button><button data-v="uo">Ult. Osc</button><button data-v="rsi">RSI</button><button data-v="b50" id="tabBreadth">Breadth</button>
+            <button data-v="price" class="on">Price</button><button data-v="uo">Momentum</button><button data-v="rsi">RSI</button><button data-v="b50" id="tabBreadth">Breadth</button>
           </div>
           <div class="tabs" id="tabsRange">
             <button data-v="63">3M</button><button data-v="126" class="on">6M</button><button data-v="252">1Y</button><button data-v="0">All</button>
@@ -256,7 +275,7 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
 
     <div class="col">
     <section class="card cf">
-      <div class="hd"><div><h2>Signal confluence</h2><div class="hint">Each side needs more than one gauge to agree</div></div></div>
+      <div class="hd"><div><h2>Signal confluence</h2><div class="hint">Four checks each way. When 2 or more agree, the status leans that way</div></div></div>
       <div class="cols">
         <div><h3 class="c-os">▼ Oversold <span id="cfOSn" class="mono"></span></h3><ul id="cfOS"></ul></div>
         <div><h3 class="c-ob">▲ Overbought <span id="cfOBn" class="mono"></span></h3><ul id="cfOB"></ul></div>
@@ -276,7 +295,7 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
   </div>
 
   <div class="grid g3">
-    <section class="card"><div class="hd"><div><h2>What followed past signals</h2><div class="hint" id="histHint"></div></div></div><div id="histBody"></div></section>
+    <section class="card"><div class="hd"><div><h2 id="histTitle">What happened after past signals</h2><div class="hint" id="histHint"></div></div></div><div id="histBody"></div></section>
     <section class="card">
       <div class="hd"><div><h2>Big names vs the rest</h2><div class="hint" id="relHint"></div></div></div>
       <div style="background:#0a0f19;border:1px solid var(--line);border-radius:9px;padding:12px">
@@ -320,9 +339,9 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
         <table>
           <thead><tr>
             <th class="s" onclick="sortBy('ticker')">Stock</th>
-            <th class="s" onclick="sortBy('uo')">Ult. Osc</th>
+            <th class="s" onclick="sortBy('uo')">Momentum</th>
             <th class="s" onclick="sortBy('rsi')">RSI</th>
-            <th class="s" onclick="sortBy('vs200')">vs 200D</th>
+            <th class="s" onclick="sortBy('vs200')">vs 200-day</th>
             <th class="s" onclick="sortBy('ext')" style="text-align:right">Status</th>
             <th></th>
           </tr></thead>
@@ -371,7 +390,7 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
           <label>As-of date<input id="f_date" type="date"></label>
           <label>Price<input id="f_price" type="number" step="any"></label>
           <label>52-wk high<input id="f_peak" type="number" step="any"></label>
-          <label>Ult. Osc (0–100)<input id="f_uo" type="number" step="any"></label>
+          <label>Momentum / Ultimate Oscillator (0–100)<input id="f_uo" type="number" step="any"></label>
           <label>RSI 14 (0–100)<input id="f_rsi" type="number" step="any"></label>
           <label>50-day avg<input id="f_s50" type="number" step="any"></label>
           <label>200-day avg<input id="f_s200" type="number" step="any"></label>
@@ -543,16 +562,16 @@ function analyze(ix = IX(), st = ST()){
   const v200= (ix.price != null && ix.sma200)? (ix.price/ix.sma200 - 1)*100 : null;
   const c = (label, val, fn, show) => ({label, val, show, ok: val == null ? null : fn(val)});
   const os = [
-    c('Ult. Osc < '+st.osWatch, ix.uo, v => v < st.osWatch, fx(ix.uo)),
+    c('Momentum < '+st.osWatch, ix.uo, v => v < st.osWatch, fx(ix.uo)),
     c('VIX ≥ '+st.vixHigh+' (fear)', ix.vix, v => v >= st.vixHigh, fx(ix.vix)),
     c('Breadth < '+st.brLow+'%', ix.br50, v => v < st.brLow, ix.br50 == null ? '—' : fx(ix.br50)+'%'),
     c('Pullback ≥ '+st.ddMin+'%', dd, v => v <= -st.ddMin, sg(dd))
   ];
   const ob = [
-    c('Ult. Osc > '+st.obWatch, ix.uo, v => v > st.obWatch, fx(ix.uo)),
+    c('Momentum > '+st.obWatch, ix.uo, v => v > st.obWatch, fx(ix.uo)),
     c('VIX ≤ '+st.vixLow+' (calm)', ix.vix, v => v <= st.vixLow, fx(ix.vix)),
     c('Breadth > '+st.brHigh+'%', ix.br50, v => v > st.brHigh, ix.br50 == null ? '—' : fx(ix.br50)+'%'),
-    c('≥ '+st.extHigh+'% above 200D', v200, v => v >= st.extHigh, sg(v200))
+    c('≥ '+st.extHigh+'% above 200-day', v200, v => v >= st.extHigh, sg(v200))
   ];
   const osN = os.filter(x=>x.ok===true).length, obN = ob.filter(x=>x.ok===true).length;
   let key = 'N';
@@ -599,9 +618,16 @@ function zoneWord(v, lo, hi){ if (v==null) return ['no data','c-mut']; if (v<=lo
 
 function renderAll(){
   const ix = IX(), st = ST(), hasData = ix.price != null, A = analyze();
-  const meta = hasData ? STATUS[A.key] : {t:'NO DATA', cls:'n', sub:'No data for this index yet.'};
+  const meta = hasData ? {...STATUS[A.key]} : {t:'NO DATA', cls:'n', sub:'No data for this index yet.'};
   const m = META[S.active];
+  if (hasData){ const u = ix.uo == null ? '—' : fx(ix.uo,0);
+    if (A.key==='WOS') meta.sub = `${A.osN} of 4 checks point to oversold, but the main momentum score (${u}) has not dropped to ${st.osTrig} yet.`;
+    else if (A.key==='WOB') meta.sub = `${A.obN} of 4 checks point to overbought, but the main momentum score (${u}) has not climbed to ${st.obTrig} yet.`;
+    else if (A.key==='OS') meta.sub = `The main momentum score is ${u}, at or below the oversold line of ${st.osTrig}.`;
+    else if (A.key==='OB') meta.sub = `The main momentum score is ${u}, at or above the overbought line of ${st.obTrig}.`;
+    else meta.sub = `Nothing is stretched. The main momentum score is ${u}, between ${st.osTrig} (oversold) and ${st.obTrig} (overbought).`; }
 
+  $('intro').style.display = S.hideIntro ? 'none' : '';
   $('mainBtn').textContent = AUTO ? 'Reload' : 'Update data';
   $('banner').innerHTML = (S.sample && !AUTO)
     ? `<div class="banner"><span><b>Sample data.</b> Made-up numbers for preview. Real data appears after the GitHub Action runs, or enter your own under Update data.</span></div>` : '';
@@ -612,7 +638,7 @@ function renderAll(){
   const age = ageDays(ix.date);
   const ageTxt = !hasData ? 'no data' : age == null ? '' : age <= 0 ? 'as of today' : age === 1 ? '1 day old' : `${age} days old`;
   const ageCol = age != null && age > 4 ? 'var(--ob)' : age != null && age > 1 ? 'var(--warn)' : 'var(--mut)';
-  $('subAge').innerHTML = `${hasData ? esc(fmtDate(ix.date)) + ' · ' : ''}<span style="color:${ageCol}">${ageTxt}</span> · ${AUTO ? 'auto-updated' : 'manual data'}`;
+  $('subAge').innerHTML = `${hasData ? 'Closing prices from ' + esc(fmtDate(ix.date)) + ' · ' : ''}<span style="color:${ageCol}">${ageTxt}</span> · ${AUTO ? 'auto-updated' : 'manual data'}`;
 
   renderStrip();
   $('heroLbl').textContent = `${m.label} status`;
@@ -636,22 +662,22 @@ function renderAll(){
       <div class="big mono">${ix.price==null?'—':'$'+ix.price.toFixed(2)}</div>
       <div class="note" style="font-size:12px;color:${A.dd!=null&&A.dd<=-st.ddMin?'var(--os)':'var(--mut)'}">${ddTxt||'—'}</div>
       <div class="note">52-week high ${ix.peak==null?'—':'$'+ix.peak.toFixed(2)}</div></div>
-    <div class="card"><div class="lbl">Ultimate Oscillator</div>
-      <div class="big mono ${ucl}">${fx(ix.uo,1)}</div><div class="note ${ucl}" style="font-size:12px">${uz}</div>${gauge(ix.uo, st.osTrig, st.obTrig)}</div>
+    <div class="card"><div class="lbl">Momentum score</div>
+      <div class="big mono ${ucl}">${fx(ix.uo,1)}</div><div class="note ${ucl}" style="font-size:12px">${uz}</div>${gauge(ix.uo, st.osTrig, st.obTrig)}<div class="note">Ultimate Oscillator, 0–100. Low = beaten down, high = stretched up.</div></div>
     <div class="card"><div class="lbl">Breadth · ${esc(m.uni)} above 50-day</div>
-      <div class="big mono ${bcl}">${ix.br50==null?'—':fx(ix.br50,1)+'%'}</div><div class="note ${bcl}" style="font-size:12px">${bz}${ix.br200!=null?` · above 200D: ${fx(ix.br200,1)}%`:''}</div>${gauge(ix.br50, st.brLow, st.brHigh)}</div>
-    <div class="card"><div class="lbl">VIX · fear gauge</div>
+      <div class="big mono ${bcl}">${ix.br50==null?'—':fx(ix.br50,1)+'%'}</div><div class="note ${bcl}" style="font-size:12px">${bz}${ix.br200!=null?` · above 200-day: ${fx(ix.br200,1)}%`:''}</div>${gauge(ix.br50, st.brLow, st.brHigh)}</div>
+    <div class="card"><div class="lbl">VIX · market fear level</div>
       <div class="big mono ${vcl}">${ix.vix==null?'—':fx(ix.vix,1)}</div><div class="note ${vcl}" style="font-size:12px">${vz}</div>${ix.vix==null?'':vixGauge(ix.vix, st.vixLow, st.vixHigh)}
       ${ix.vixpct==null?'':`<div class="note">${ix.vixpct>=99?'Highest in the past year':'Higher than '+ix.vixpct+'% of the past year'}${ix.vix5!=null?` · ${ix.vix5>0?'▲':'▼'} ${ix.vix5>0?'+':''}${fx(ix.vix5,1)} in 5 days`:''}</div>`}</div>
-    <div class="card"><div class="lbl">Trend position</div>
-      <div class="big mono" style="font-size:20px">${trend(A.v50,'vs 50D')}</div>
-      <div class="big mono" style="font-size:20px;margin-top:2px">${trend(A.v200,'vs 200D')}</div>
-      <div class="note">${A.v200==null?'Needs the 200-day average':A.v200>=st.extHigh?'Extended above long-term trend':A.v200<0?'Below long-term trend':'Within normal range of trend'}</div></div>`;
+    <div class="card"><div class="lbl">Price vs its averages</div>
+      <div class="big mono" style="font-size:16px">${trend(A.v50,'vs 50-day avg')}</div>
+      <div class="big mono" style="font-size:16px;margin-top:2px">${trend(A.v200,'vs 200-day avg')}</div>
+      <div class="note">${A.v200==null?'Needs the 200-day average':A.v200>=st.extHigh?'Well above its long-term average':A.v200<0?'Below its long-term average':'Close to its long-term average'}</div></div>`;
 
   const list = (arr, el, cls) => { $(el).innerHTML = arr.map(x => `<li><span><span class="chk ${x.ok===true?cls:'c-mut'}">${x.ok===true?'✓':x.ok===false?'✗':'–'}</span>${esc(x.label)}</span><span class="mono ${x.ok===true?cls:'c-mut'}">${esc(x.show)}</span></li>`).join(''); };
   list(A.os,'cfOS','c-os'); list(A.ob,'cfOB','c-ob');
   $('cfOSn').textContent = `${A.osN}/${known(A.os)}`; $('cfOBn').textContent = `${A.obN}/${known(A.ob)}`;
-  $('cfNote').textContent = `Using the "${st.name}" setting. The headline fires when the Ultimate Oscillator passes ${st.osTrig} (oversold) or ${st.obTrig} (overbought).`;
+  $('cfNote').textContent = `Using the "${st.name}" setting. The headline turns oversold when the momentum score is at or below ${st.osTrig}, and overbought at or above ${st.obTrig}.`;
 
   renderRead(A); renderInternals(); renderExtremes(); renderSectors(); renderHist();
   renderRel(); renderLadder(); renderTable(); renderLog(); drawChart();
@@ -711,7 +737,7 @@ function renderInternals(){
   if (D.nh != null){
     const nn = w.length, cnt = p => nn ? ` (${Math.round(p*nn/100)} of ${nn})` : '';
     const diff = D.nh - D.nl;
-    rows.push(['Highs / lows', `<b>${fx(D.nh,0)}%</b> at 52-week highs${cnt(D.nh)} · <b>${fx(D.nl,0)}%</b> at lows${cnt(D.nl)}`,
+    rows.push(['New highs / lows', `<b>${fx(D.nh,0)}%</b> at 52-week highs${cnt(D.nh)} · <b>${fx(D.nl,0)}%</b> at lows${cnt(D.nl)}`,
       diff >= 10 ? 'Highs clearly outnumber lows.' : diff <= -10 ? 'Lows clearly outnumber highs.' : 'Mixed: no strong lean either way.']);
   }
   if (D.vx != null){
@@ -720,17 +746,17 @@ function renderInternals(){
     if (D.vx >= 1.5 && dn != null && dn <= -0.5) hint = ' A selloff on heavy volume can be a washout, but it is not proof of a bottom.';
     else if (D.vx >= 1.5 && dn != null && dn >= 0.5) hint = ' A rally on heavy volume means broad participation.';
     else if (D.vx <= 0.7) hint = ' Quiet trading: moves on light volume are less convincing.';
-    rows.push([`Volume`, `<b>${D.vx.toFixed(1)}×</b> its 50-day average${dn != null ? ` on ${dn<0?'a down':'an up'} day (${sg(dn,1)})` : ''}`, `${volWord(D.vx)} (${esc(S.active)} fund volume).${hint}`]);
+    rows.push([`Trading volume`, `<b>${D.vx.toFixed(1)}×</b> its 50-day average${dn != null ? ` on ${dn<0?'a down':'an up'} day (${sg(dn,1)})` : ''}`, `${volWord(D.vx)} (${esc(S.active)} fund volume).${hint}`]);
   }
   if (D.state){
     const word = D.state === 'OS' ? 'oversold' : 'overbought';
     if (D.state === 'N'){
-      rows.push(['Signal age', D.lastTrig
+      rows.push(['How long', D.lastTrig
         ? `<b>${D.streak} day${D.streak===1?'':'s'}</b> since the last oversold/overbought trigger`
         : `<b>No trigger</b> in the last ${D.n} trading days`,
         D.lastTrig ? `Last: ${D.lastTrig.state==='OS'?'oversold':'overbought'} on ${fmtDate(D.lastTrig.date)}.` : 'Neither oversold nor overbought at the trigger level.']);
     } else {
-      rows.push(['Signal age', `<b>Day ${D.streak + 1}</b> of this ${word} reading`,
+      rows.push(['How long', `<b>Day ${D.streak + 1}</b> of this ${word} reading`,
         D.prior ? `The previous ${word} reading ended ${D.prior.ago} trading days ago (${fmtDate(D.prior.date)}).` : `First ${word} reading in the ${D.n} trading days of history.`]);
     }
   }
@@ -781,37 +807,57 @@ function renderRead(A){
 function miniBar(v, st){ return v==null ? '' : `<span class="mini" style="background:linear-gradient(to right,rgba(52,211,153,.4) 0 ${st.osTrig}%,#1a2336 ${st.osTrig}% ${st.obTrig}%,rgba(251,113,133,.4) ${st.obTrig}% 100%)"><i style="left:${Math.max(0,Math.min(100,v))}%"></i></span>`; }
 function renderExtremes(){
   const st = ST(), w = WATCH().filter(s => s.uo != null);
-  const row = (s, cls) => `<div class="xr"><b>${esc(s.ticker)}</b><span class="nm">${esc(s.name||'')}</span><span class="mono ${cls}">${fx(s.uo)}</span>${miniBar(s.uo, st)}<span class="mono c-mut" style="min-width:62px;text-align:right">${s.vs200==null?'':sg(s.vs200,0)+' 200D'}</span></div>`;
+  const row = (s, cls) => `<div class="xr"><b>${esc(s.ticker)}</b><span class="nm">${esc(s.name||'')}</span><span class="mono ${cls}">${fx(s.uo)}</span>${miniBar(s.uo, st)}<span class="mono c-mut" style="min-width:92px;text-align:right;font-size:11px">${s.vs200==null?'':sg(s.vs200,0)+' vs 200-day'}</span></div>`;
   const os = w.filter(s => ['OS','WOS'].includes(stockStatus(s))).sort((a,b)=>a.uo-b.uo);
   const ob = w.filter(s => ['OB','WOB'].includes(stockStatus(s))).sort((a,b)=>b.uo-a.uo);
   const none = '<div class="note" style="padding:10px 0;font-size:12px">None flagged right now.</div>';
-  $('osHint').textContent = `${os.length} flagged (${os.filter(s=>stockStatus(s)==='OS').length} past the trigger) · lowest Ult. Osc first`;
-  $('obHint').textContent = `${ob.length} flagged (${ob.filter(s=>stockStatus(s)==='OB').length} past the trigger) · highest Ult. Osc first`;
+  $('osHint').textContent = `${os.length} stock${os.length===1?'':'s'} looking stretched down (${os.filter(s=>stockStatus(s)==='OS').length} strongly) · lowest momentum first`;
+  $('obHint').textContent = `${ob.length} stock${ob.length===1?'':'s'} looking stretched up (${ob.filter(s=>stockStatus(s)==='OB').length} strongly) · highest momentum first`;
   $('osList').innerHTML = os.length ? os.slice(0,8).map(s=>row(s,'c-os')).join('') + (os.length>8 ? `<button class="more" onclick="openScreener('OS')">+${os.length-8} more · open full screener ›</button>` : '') : none;
   $('obList').innerHTML = ob.length ? ob.slice(0,8).map(s=>row(s,'c-ob')).join('') + (ob.length>8 ? `<button class="more" onclick="openScreener('OB')">+${ob.length-8} more · open full screener ›</button>` : '') : none;
 }
 function renderSectors(){
   const st = ST(), sec = sectorStats();
   if (sec.length < 2){ $('secTbl').innerHTML = '<div class="note" style="font-size:12px">Sector data appears with the automatic update (stock lists with sectors).</div>'; return; }
-  $('secTbl').innerHTML = `<table class="ht"><thead><tr><th>Sector</th><th>#</th><th>Avg Ult. Osc</th><th>▼</th><th>▲</th><th>Above 200D</th></tr></thead><tbody>` +
+  $('secTbl').innerHTML = `<table class="ht"><thead><tr><th>Sector</th><th>#</th><th>Avg momentum</th><th>▼</th><th>▲</th><th>Above 200-day</th></tr></thead><tbody>` +
     sec.map(x => `<tr><td>${esc(x.name)}</td><td class="mono c-mut">${x.n}</td><td class="mono ${x.avg==null?'':x.avg<=st.osWatch?'c-os':x.avg>=st.obWatch?'c-ob':''}">${fx(x.avg,0)}${miniBar(x.avg, st)}</td><td class="mono ${x.os?'c-os':'c-mut'}">${x.os}</td><td class="mono ${x.ob?'c-ob':'c-mut'}">${x.ob}</td><td class="mono c-mut">${x.above==null?'—':fx(x.above,0)+'%'}</td></tr>`).join('') + '</tbody></table>';
 }
 function renderHist(){
   const s = AUTO && AUTO.stats && AUTO.stats[S.active], el = $('histBody');
+  $('histTitle').textContent = 'What happened after past signals';
   if (!s || !s.rules || !s.rules[S.preset]){
     $('histHint').textContent = '';
-    el.innerHTML = '<div class="note" style="font-size:12px">This fills in after the GitHub Action has run. It looks back over the index\'s full price history and shows what happened after each past oversold or overbought signal.</div>'; return;
+    el.innerHTML = '<div class="note" style="font-size:12px">This fills in after the GitHub Action has run. It looks back over the index\'s full price history and shows what happened after each past oversold or overbought reading.</div>'; return;
   }
-  const r = s.rules[S.preset], b = s.baseline;
-  $('histHint').textContent = `${s.src} · ${s.years} years (${s.from.slice(0,4)}–${s.to.slice(0,4)}) · "${ST().name}" setting`;
-  const cell = c => !c || c.n === 0 || c.med == null ? '<td class="c-mut">—</td>' : `<td><span class="mono ${c.med>=0?'c-os':'c-ob'}">${sg(c.med)}</span> <span class="c-mut">· ${fx(c.pos,0)}% up</span><div class="w">worst ${sg(c.worst)} · n=${c.n}</div></td>`;
-  const row = (name, cls, o) => `<tr><td class="${cls}"><b>${name}</b><div class="w">${o.episodes!=null?o.episodes+' episodes':'baseline'}${o.episodes!=null&&o.episodes<8?' ⚠ few':''}</div></td>${['21','63','126'].map(h=>cell(o.fwd[h])).join('')}</tr>`;
-  el.innerHTML = `<div style="overflow-x:auto"><table class="ht"><thead><tr><th>Signal</th><th>+1 month</th><th>+3 months</th><th>+6 months</th></tr></thead><tbody>
-    ${row('▼ Oversold (UO ≤ '+r.os.trig+')','c-os',{episodes:r.os.episodes,fwd:r.os.fwd})}
-    ${row('▲ Overbought (UO ≥ '+r.ob.trig+')','c-ob',{episodes:r.ob.episodes,fwd:r.ob.fwd})}
-    ${row('Any day (baseline)','c-mut',{fwd:b})}
-    </tbody></table></div>
-    <div class="note" style="margin-top:8px;line-height:1.5">Median price change after each signal, share of cases that were up, and the worst case. Compare against the baseline row. Past results are not a forecast, and this is price only: the breadth, VIX and pullback checks can't be tested here. Episodes are separated by at least 21 quiet trading days.</div>`;
+  const r = s.rules[S.preset], b = s.baseline, ix = IX(), name = esc(s.src);
+  $('histHint').textContent = `${s.src} since ${s.from.slice(0,4)} · how it did after readings like these · "${ST().name}" setting`;
+  const H = [['21','1 month later'],['63','3 months later'],['126','6 months later']];
+  const upTxt = (c, base) => base || c.n > 12 ? `higher ${fx(c.pos,0)}% of the time` : `higher ${Math.round(c.pos*c.n/100)} of ${c.n} times`;
+  const cell = (c, base) => !c || !c.n || c.med == null ? '<div class="hc c-mut">—</div>' :
+    `<div class="hc"><div class="hv mono ${c.med>=0?'c-os':'c-ob'}">${sg(c.med)}</div><div class="hs">${upTxt(c, base)}</div><div class="hw">${base?'worst':'weakest'}: ${sg(c.worst)}</div></div>`;
+  const block = (title, sub, cls, o, extra) => `<div class="hb ${extra||''}">
+      <div class="hbt"><span class="${cls}"><b>${title}</b></span>${o.now?'<span class="pill n" style="margin-left:8px">● today</span>':''}${o.few?'<span class="pill wob" style="margin-left:8px;color:var(--warn);border-color:rgba(251,191,36,.5)">too few to trust</span>':''}</div>
+      <div class="hbs">${sub}</div>
+      <div class="hcells">${H.map(([k,l]) => `<div><div class="hh">${l}</div>${cell(o.fwd[k], o.base)}</div>`).join('')}</div></div>`;
+  const osN = r.os.episodes, obN = r.ob.episodes, uo = ix.uo;
+  const osNow = uo != null && uo <= r.os.trig, obNow = uo != null && uo >= r.ob.trig;
+  // plain-English takeaways at the 3-month mark
+  const take = (label, o) => {
+    const c = o.fwd['63'], bb = b['63'];
+    if (!c || !c.n) return '';
+    const hi = c.n > 12 ? `${fx(c.pos,0)}% of the time` : `${Math.round(c.pos*c.n/100)} of ${c.n} times`;
+    let t = `After ${label} readings, ${name} was higher 3 months later ${hi} (typical ${sg(c.med)}); on a random day it was higher ${fx(bb.pos,0)}% of the time (typical ${sg(bb.med)}).`;
+    if (o.episodes < 8) t += ` With only ${o.episodes} cases this is a hint, not evidence.`;
+    else if (label === 'overbought') t += c.med < 0 ? ' Overbought readings were followed by losses on average.' : c.med < bb.med ? ' Overbought readings were followed by smaller gains than usual, not by losses.' : ' Overbought readings were followed by gains at least as large as usual, so on this history they were not a sell signal.';
+    else if (label === 'oversold') t += c.med > bb.med ? ' Oversold readings were followed by bigger gains than usual.' : ' Oversold readings were not followed by better results than a random day.';
+    return t;
+  };
+  el.innerHTML =
+    block('▼ When it was oversold', `Momentum score at or below ${r.os.trig} · happened ${osN} time${osN===1?'':'s'}`, 'c-os', {fwd:r.os.fwd, now:osNow, few:osN<8}) +
+    block('▲ When it was overbought', `Momentum score at or above ${r.ob.trig} · happened ${obN} time${obN===1?'':'s'}`, 'c-ob', {fwd:r.ob.fwd, now:obNow, few:obN<8}) +
+    block('A random day, for comparison', 'Every trading day in the history', 'c-mut', {fwd:b, base:true}, 'hbase') +
+    `<div class="read" style="margin-top:12px;font-size:12px">${[take('oversold', {fwd:r.os.fwd, episodes:osN}), take('overbought', {fwd:r.ob.fwd, episodes:obN})].filter(Boolean).join('<br><br>')}</div>
+    <div class="note" style="margin-top:8px;line-height:1.5"><b>How to read it:</b> "typical" is the middle result across past cases, "weakest" is the single worst case. Compare each row with the random-day row, since the index rises most of the time anyway. Past results are not a forecast. This tests only the Ultimate Oscillator trigger, not the breadth, VIX or pullback checks. Readings less than a month apart count as one case.</div>`;
 }
 
 function renderStrip(){
@@ -819,16 +865,17 @@ function renderStrip(){
     const sl = slot(sym), has = sl && sl.index.price != null; let inner;
     if (!has) inner = '<div class="note">No data yet</div>';
     else { const a = analyze(sl.index), mt = STATUS[a.key];
-      inner = `<span class="pill ${mt.cls}">${mt.t}</span><div class="note mono" style="margin-top:6px">UO ${fx(sl.index.uo)} · breadth ${sl.index.br50==null?'—':fx(sl.index.br50,0)+'%'}</div>`; }
-    return `<button class="tile ${sym===S.active?'on':''}" onclick="setActive('${sym}')"><div class="lbl">${META[sym].label}</div><div style="font-size:11px;color:var(--mut);margin:2px 0 8px">${sym}${has?' · $'+sl.index.price.toFixed(2):''}</div>${inner}</button>`;
+      inner = `<span class="pill ${mt.cls}">${mt.t}</span><div class="note mono" style="margin-top:6px">momentum ${fx(sl.index.uo,0)} · breadth ${sl.index.br50==null?'—':fx(sl.index.br50,0)+'%'}</div>`; }
+    return `<button class="tile ${sym===S.active?'on':''}" onclick="setActive('${sym}')"><div class="lbl">${META[sym].label}</div><div style="font-size:11px;color:var(--mut);margin:2px 0 8px">${sym} fund${has?' · $'+sl.index.price.toFixed(2):''}</div>${inner}</button>`;
   }).join('');
 }
 function setActive(sym){ S.active = sym; showAll = false; fStatus = 'ALL'; fSector = 'ALL'; hoverI = null; persist(); renderAll(); }
+function hideIntro(){ S.hideIntro = true; persist(); $('intro').style.display = 'none'; }
 function setPreset(k){ S.preset = k; persist(); renderAll(); }
 
 function renderRel(){
   const m = META[S.active], sp = IX().spread;
-  $('relHint').textContent = m.rel || 'Not applicable';
+  $('relHint').textContent = m.rel ? 'Is the index being carried by a few giants? ' + m.rel : 'Not applicable';
   $('relLbl').textContent = m.rel ? 'Cap-weight minus equal-weight, last month' : 'Price-weighted index';
   $('relVal').textContent = m.rel ? sg(sp) : '—';
   $('relTxt').textContent = !m.rel ? 'The Dow weights by share price, so there is no matching equal-weight comparison.'
@@ -971,7 +1018,7 @@ function drawChart(){
     g.strokeStyle='rgba(255,255,255,.3)'; g.lineWidth=1; g.beginPath(); g.moveTo(x,T); g.lineTo(x,T+ph); g.stroke();
     g.fillStyle='#fff'; g.beginPath(); g.arc(x,Y(p[key]),3.5,0,7); g.fill();
     const tip = $('tip'); tip.style.display='block';
-    tip.innerHTML = `<b>${fmtDate(p.d)}</b><br>` + (cMetric==='price' ? `Close $${p.c.toFixed(2)}${p.s50!=null?`<br>50D $${p.s50.toFixed(2)}`:''}${p.s200!=null?`<br>200D $${p.s200.toFixed(2)}`:''}` : `${cMetric==='uo'?'Ult. Osc':cMetric==='b50'?'Above 50-day':'RSI'} ${p[key].toFixed(1)}${cMetric==='b50'?'%':''}`);
+    tip.innerHTML = `<b>${fmtDate(p.d)}</b><br>` + (cMetric==='price' ? `Close $${p.c.toFixed(2)}${p.s50!=null?`<br>50-day $${p.s50.toFixed(2)}`:''}${p.s200!=null?`<br>200-day $${p.s200.toFixed(2)}`:''}` : `${cMetric==='uo'?'Momentum':cMetric==='b50'?'Above 50-day':'RSI'} ${p[key].toFixed(1)}${cMetric==='b50'?'%':''}`);
     tip.style.left = Math.min(x+12, W-130) + 'px'; tip.style.top = '8px';
   }
 }
@@ -1121,7 +1168,7 @@ function saveUpdate(){
   v.date = v.date || todayISO();
   const bad = (k,lo,hi) => v[k]!=null && (v[k]<lo || v[k]>hi);
   if (v.price==null || v.price<=0) return toast('Price is required.');
-  if (bad('uo',0,100)||bad('rsi',0,100)||bad('br50',0,100)||bad('br200',0,100)) return toast('Ult. Osc, RSI and breadth must be between 0 and 100.');
+  if (bad('uo',0,100)||bad('rsi',0,100)||bad('br50',0,100)||bad('br200',0,100)) return toast('Momentum, RSI and breadth must be between 0 and 100.');
   const w = parseWatch($('wlText').value);
   if (!w.rows.length && $('wlText').value.trim()) return toast('Could not read any valid stock rows.');
   const sl = S.manual[S.active];
