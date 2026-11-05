@@ -74,6 +74,13 @@ h1{font-size:18px;margin:0;font-weight:700;letter-spacing:-.01em}
 .tabs{display:flex;gap:4px;background:#0a0f19;border:1px solid var(--line);border-radius:8px;padding:3px}
 .tabs button{background:none;border:0;border-radius:6px;padding:5px 11px;font-size:12px;font-weight:600;color:var(--mut);cursor:pointer}
 .tabs button.on{background:#1b2740;color:#fff}
+#presetTabs button{display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2;padding:6px 14px}
+#presetTabs button small{font-size:10px;font-weight:500;opacity:.75}
+.more{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px dashed var(--line);padding:10px 0 2px;margin-top:4px;font-size:12px;font-weight:600;color:var(--acc);cursor:pointer}
+.more:hover{text-decoration:underline}
+details.scr>summary.scrsum{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:15px}
+details.scr>summary .tag{margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);border:1px solid rgba(129,140,248,.4);background:var(--acc-bg);border-radius:99px;padding:3px 10px}
+details.scr[open]>summary .tag{display:none}
 details.help{margin-top:12px;font-size:12px;color:var(--mut)}
 details.help summary{cursor:pointer;color:var(--acc);font-weight:600}
 details.help ul{margin:8px 0 0;padding-left:18px;line-height:1.55}
@@ -132,6 +139,36 @@ details.scr[open] summary::before{content:"▾ "}
 .ht td,.ht th{padding:7px 6px}
 .ht .w{font-size:10px;color:var(--dim)}
 footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
+
+@media(max-width:600px){
+  body{font-size:14px}
+  .wrap{padding:10px}
+  header.top{position:static}
+  header.top .wrap{padding-top:8px;padding-bottom:8px;gap:8px}
+  h1{font-size:16px}
+  .card{padding:12px;border-radius:10px}
+  .grid,.strip,.kpis,.g2,.g3,.g4{gap:10px}
+  .strip{grid-template-columns:1fr 1fr}
+  .tile{padding:10px}
+  .big{font-size:22px}
+  .hero{gap:14px}
+  .hero>div{min-width:0 !important;width:100%}
+  .hero .st{font-size:20px}
+  .tabs{width:100%}
+  .tabs button{flex:1;padding:6px 4px}
+  #presetTabs button{padding:6px 4px}
+  #presetDesc{max-width:none !important}
+  .chartbox{height:220px}
+  #q{width:100% !important}
+  .hd{flex-direction:column}
+  .xr{gap:6px}
+  td,th{padding:7px 5px}
+  .btn{padding:8px 12px}
+  .chip{padding:5px 11px}
+  #toast{max-width:92vw}
+  details.scr>summary .tag{margin-left:0}
+}
+@media(max-width:380px){.strip{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -251,7 +288,7 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
     </section>
   </div>
 
-  <div style="margin-top:14px"><details class="card scr" id="scrDet"><summary class="scrsum"><b>Full screener</b> <span id="scrSum" class="c-mut"></span></summary><div style="margin-top:12px">
+  <div style="margin-top:14px"><details class="card scr" id="scrDet" style="scroll-margin-top:90px"><summary class="scrsum"><b>Full screener</b> <span id="scrSum" class="c-mut"></span><span class="tag">Tap to open all stocks</span></summary><div style="margin-top:12px">
       <div class="hd">
         <div><h2>Stock screener</h2><div class="hint" id="scrHint"></div></div>
         <input id="q" type="text" placeholder="Search ticker / name" oninput="renderTable()" style="width:170px">
@@ -438,11 +475,11 @@ function computeSeries(rows){
 /* ================= the three base cases ================= */
 // Everything the toggle changes lives here. Edit these numbers if you want different behaviour.
 const PRESETS = {
-  mild: {name:'Mild dip',   desc:'Flags earlier and more often. Built for small pullbacks of roughly 8% and up.',
+  mild: {name:'Pullback',    pct:'~8%',  desc:'Pullback (about 8% drop): flags early and often. Best for spotting routine dips; expect some false alarms.',
          osTrig:30, osWatch:38, obWatch:62, obTrig:70, rsiLow:35, rsiHigh:65, brLow:30, brHigh:70, ddMin:8,  extHigh:6},
-  mod:  {name:'Correction', desc:'Balanced. Built for real corrections of roughly 13% and up.',
+  mod:  {name:'Correction',  pct:'~13%', desc:'Correction (about 13% drop): the balanced default. Flags real selloffs, not routine noise.',
          osTrig:25, osWatch:33, obWatch:67, obTrig:75, rsiLow:30, rsiHigh:70, brLow:25, brHigh:75, ddMin:13, extHigh:10},
-  deep: {name:'Deep bear',  desc:'Only the rare extremes, like 25%+ drawdowns. Fewer signals, bigger moves.',
+  deep: {name:'Bear market', pct:'~25%', desc:'Bear market (about 25% drop): only rare, extreme stretches. Few signals, but the big ones.',
          osTrig:20, osWatch:28, obWatch:72, obTrig:80, rsiLow:25, rsiHigh:75, brLow:15, brHigh:85, ddMin:25, extHigh:15}
 };
 const SYMS = ['QQQM','SPY','DIA'];
@@ -558,7 +595,7 @@ function renderAll(){
   $('heroSt').textContent = meta.t;
   $('heroSt').style.color = ['os','wos'].includes(meta.cls) ? 'var(--os)' : ['ob','wob'].includes(meta.cls) ? 'var(--ob)' : '#e8edf5';
   $('heroSub').textContent = meta.sub;
-  $('presetTabs').innerHTML = Object.entries(PRESETS).map(([k,p]) => `<button class="${S.preset===k?'on':''}" onclick="setPreset('${k}')">${p.name}</button>`).join('');
+  $('presetTabs').innerHTML = Object.entries(PRESETS).map(([k,p]) => `<button class="${S.preset===k?'on':''}" onclick="setPreset('${k}')"><span>${p.name}</span><small>${p.pct} drop</small></button>`).join('');
   $('presetDesc').textContent = ST().desc;
 
   const known = a => a.filter(x=>x.ok!==null).length;
@@ -637,8 +674,8 @@ function renderExtremes(){
   const none = '<div class="note" style="padding:10px 0;font-size:12px">None flagged right now.</div>';
   $('osHint').textContent = `${os.length} flagged (${os.filter(s=>stockStatus(s)==='OS').length} past the trigger) · lowest Ult. Osc first`;
   $('obHint').textContent = `${ob.length} flagged (${ob.filter(s=>stockStatus(s)==='OB').length} past the trigger) · highest Ult. Osc first`;
-  $('osList').innerHTML = os.length ? os.slice(0,8).map(s=>row(s,'c-os')).join('') + (os.length>8 ? `<div class="note">+${os.length-8} more in the full screener</div>` : '') : none;
-  $('obList').innerHTML = ob.length ? ob.slice(0,8).map(s=>row(s,'c-ob')).join('') + (ob.length>8 ? `<div class="note">+${ob.length-8} more in the full screener</div>` : '') : none;
+  $('osList').innerHTML = os.length ? os.slice(0,8).map(s=>row(s,'c-os')).join('') + (os.length>8 ? `<button class="more" onclick="openScreener('OS')">+${os.length-8} more · open full screener ›</button>` : '') : none;
+  $('obList').innerHTML = ob.length ? ob.slice(0,8).map(s=>row(s,'c-ob')).join('') + (ob.length>8 ? `<button class="more" onclick="openScreener('OB')">+${ob.length-8} more · open full screener ›</button>` : '') : none;
 }
 function renderSectors(){
   const st = ST(), sec = sectorStats();
@@ -724,6 +761,11 @@ function renderLadder(){
 
 /* screener */
 let sortKey = 'ext', sortAsc = false, fStatus = 'ALL', fSector = 'ALL';
+function openScreener(status){
+  fStatus = status === 'OS' ? 'XOS' : status === 'OB' ? 'XOB' : 'ALL'; showAll = false; sortKey = status ? 'uo' : 'ext'; sortAsc = (status === 'OS');
+  const d = $('scrDet'); d.open = true; renderTable();
+  setTimeout(() => d.scrollIntoView({behavior:'smooth', block:'start'}), 30);
+}
 const LIMIT = 15;
 function sortBy(k){ if (sortKey===k) sortAsc = !sortAsc; else { sortKey=k; sortAsc = k==='ticker'||k==='uo'||k==='rsi'||k==='vs200'; } renderTable(); }
 function renderTable(){
@@ -731,12 +773,12 @@ function renderTable(){
   $('scrHint').textContent = `${META[S.active].uni} members, most stretched first`;
   $('scrSum').textContent = watch.length ? `· ${watch.length} stocks, filter and sort` : '· no stock data yet';
   const cnt = k => watch.filter(s => stockStatus(s)===k).length;
-  const chips = [['ALL','All',watch.length],['OS','▼ Oversold',cnt('OS')],['WOS','▼ Watch',cnt('WOS')],['WOB','▲ Watch',cnt('WOB')],['OB','▲ Overbought',cnt('OB')]];
+  const chips = [['ALL','All',watch.length],['XOS','▼ Oversold side',cnt('OS')+cnt('WOS')],['XOB','▲ Overbought side',cnt('OB')+cnt('WOB')]];
   $('chipsStatus').innerHTML = chips.map(c => `<button class="chip ${fStatus===c[0]?'on':''}" onclick="fStatus='${c[0]}';showAll=false;renderTable()">${c[1]} · ${c[2]}</button>`).join('');
   const secs = ['ALL', ...Array.from(new Set(watch.map(s=>s.sector||'Other'))).sort()];
   if (!secs.includes(fSector)) fSector = 'ALL';
   $('chipsSector').innerHTML = secs.length>2 ? secs.map(s => `<button class="chip ${fSector===s?'on':''}" data-s="${esc(s)}" onclick="fSector=this.dataset.s;showAll=false;renderTable()">${s==='ALL'?'All sectors':esc(s)}</button>`).join('') : '';
-  let rows = watch.filter(s => (fStatus==='ALL'||stockStatus(s)===fStatus) && (fSector==='ALL'||(s.sector||'Other')===fSector) && (s.ticker.toLowerCase().includes(q)||(s.name||'').toLowerCase().includes(q)));
+  let rows = watch.filter(s => (fStatus==='ALL'||(fStatus==='XOS'?['OS','WOS'].includes(stockStatus(s)):fStatus==='XOB'?['OB','WOB'].includes(stockStatus(s)):stockStatus(s)===fStatus)) && (fSector==='ALL'||(s.sector||'Other')===fSector) && (s.ticker.toLowerCase().includes(q)||(s.name||'').toLowerCase().includes(q)));
   const val = s => sortKey==='ext' ? (s.uo==null?-1:Math.abs(s.uo-50)) : s[sortKey];
   rows.sort((a,b) => { const x=val(a), y=val(b); if (x==null) return 1; if (y==null) return -1; const r = typeof x==='string' ? x.localeCompare(y) : x-y; return sortAsc ? r : -r; });
   const total = rows.length, shown = showAll ? rows : rows.slice(0, LIMIT);
