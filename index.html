@@ -42,8 +42,16 @@ h1{font-size:18px;margin:0;font-weight:700;letter-spacing:-.01em}
 .hint{font-size:11px;color:var(--mut);margin-top:2px}
 .grid{display:grid;gap:14px}
 .strip{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:14px}
-.kpis{grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin-top:14px}
-.g2{grid-template-columns:7fr 5fr;margin-top:14px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin-top:14px}
+.g2{grid-template-columns:7fr 5fr;margin-top:14px;align-items:stretch}
+@media(min-width:961px){.g2>section.card:first-child{display:flex;flex-direction:column}.g2>section.card:first-child .chartbox{flex:1;height:auto;min-height:260px}}
+.col{display:grid;gap:14px;align-content:start;min-width:0}
+.ir{display:grid;grid-template-columns:96px 1fr;gap:10px;padding:10px 0;border-bottom:1px dashed var(--line);font-size:12px;align-items:start}
+.ir:last-child{border-bottom:0;padding-bottom:0}
+.ir .k{color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding-top:2px}
+.ir .v{color:#e8edf5;line-height:1.45}
+.ir .v b{font-weight:700}
+.ir .s{color:var(--mut);font-size:11px;margin-top:2px;line-height:1.45}
 .g3{grid-template-columns:1fr 1fr;margin-top:14px;align-items:start}
 .g4{grid-template-columns:5fr 7fr;margin-top:14px}
 @media(max-width:960px){.g2,.g3,.g4{grid-template-columns:1fr}}
@@ -88,11 +96,6 @@ details.help ul{margin:8px 0 0;padding-left:18px;line-height:1.55}
 .chartbox canvas{width:100%;height:100%;display:block}
 #tip{position:absolute;pointer-events:none;background:#0a0f19ee;border:1px solid var(--line2);border-radius:8px;padding:6px 8px;font-size:11px;display:none;white-space:nowrap}
 .empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:12px;text-align:center;padding:20px}
-.ck{display:flex;gap:10px;padding:10px;border:1px solid var(--line);background:#0a0f19;border-radius:9px;margin-bottom:8px;cursor:pointer}
-.ck:hover{background:#111a2b}
-.ck input{margin-top:3px;accent-color:var(--os)}
-.ck b{font-size:12px}.ck span{display:block;font-size:11px;color:var(--mut);margin-top:2px}
-.ck.done b{color:var(--mut);text-decoration:line-through}
 table{width:100%;border-collapse:collapse}
 th{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
 th.s{cursor:pointer}th.s:hover{color:#fff}
@@ -150,6 +153,12 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
   .grid,.strip,.kpis,.g2,.g3,.g4{gap:10px}
   .strip{grid-template-columns:1fr 1fr}
   .tile{padding:10px}
+  .kpis{grid-template-columns:1fr 1fr}
+  .kpis .card:last-child{grid-column:1/-1}
+  .kpis .card{padding:11px}
+  .kpis .big{font-size:20px}
+  .col{gap:10px}
+  .ir{grid-template-columns:78px 1fr}
   .big{font-size:22px}
   .hero{gap:14px}
   .hero>div{min-width:0 !important;width:100%}
@@ -233,7 +242,7 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
         <div><h2>History</h2><div class="hint" id="chartHint"></div></div>
         <div class="row">
           <div class="tabs" id="tabsMetric">
-            <button data-v="price" class="on">Price</button><button data-v="uo">Ult. Osc</button><button data-v="rsi">RSI</button>
+            <button data-v="price" class="on">Price</button><button data-v="uo">Ult. Osc</button><button data-v="rsi">RSI</button><button data-v="b50" id="tabBreadth">Breadth</button>
           </div>
           <div class="tabs" id="tabsRange">
             <button data-v="63">3M</button><button data-v="126" class="on">6M</button><button data-v="252">1Y</button><button data-v="0">All</button>
@@ -243,6 +252,7 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
       <div class="chartbox"><canvas id="chart"></canvas><div id="tip"></div></div>
     </section>
 
+    <div class="col">
     <section class="card cf">
       <div class="hd"><div><h2>Signal confluence</h2><div class="hint">Each side needs more than one gauge to agree</div></div></div>
       <div class="cols">
@@ -251,6 +261,11 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
       </div>
       <div class="note" id="cfNote" style="margin-top:10px"></div>
     </section>
+    <section class="card" id="intCard">
+      <div class="hd"><div><h2>Market internals</h2><div class="hint">What is under the surface of the index</div></div></div>
+      <div id="intBody"></div>
+    </section>
+    </div>
   </div>
 
   <div class="grid g3">
@@ -259,23 +274,7 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
   </div>
 
   <div class="grid g3">
-    <section class="card"><div class="hd"><div><h2>Sectors</h2><div class="hint">Which parts of the index are stretched</div></div></div><div id="secTbl" style="overflow-x:auto"></div></section>
     <section class="card"><div class="hd"><div><h2>What followed past signals</h2><div class="hint" id="histHint"></div></div></div><div id="histBody"></div></section>
-  </div>
-
-  <div class="grid g3">
-    <section class="card">
-      <div class="hd">
-        <div><h2>Price ladder</h2><div class="hint">Reference levels from the 52-week high and the 200-day</div></div>
-        <label class="row" style="font-size:11px;color:var(--mut)">Custom pullback %
-          <input id="custDD" type="number" step="0.5" min="1" max="90" placeholder="e.g. 12" style="width:70px" oninput="renderLadder()"></label>
-      </div>
-      <div id="custOut" class="note" style="margin:-4px 0 8px"></div>
-      <div class="lbl" style="margin-bottom:4px">▼ Pullback from 52-week high</div>
-      <table class="lad"><tbody id="ladDown"></tbody></table>
-      <div class="lbl" style="margin:14px 0 4px">▲ Extension above 200-day</div>
-      <table class="lad"><tbody id="ladUp"></tbody></table>
-    </section>
     <section class="card">
       <div class="hd"><div><h2>Big names vs the rest</h2><div class="hint" id="relHint"></div></div></div>
       <div style="background:#0a0f19;border:1px solid var(--line);border-radius:9px;padding:12px">
@@ -288,7 +287,27 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
     </section>
   </div>
 
-  <div style="margin-top:14px"><details class="card scr" id="scrDet" style="scroll-margin-top:90px"><summary class="scrsum"><b>Full screener</b> <span id="scrSum" class="c-mut"></span><span class="tag">Tap to open all stocks</span></summary><div style="margin-top:12px">
+  <div class="col more-stack" style="margin-top:14px">
+    <details class="card scr"><summary class="scrsum"><b>Sectors</b> <span class="c-mut">· which parts of the index are stretched</span><span class="tag">Tap to open</span></summary>
+      <div id="secTbl" style="overflow-x:auto;margin-top:12px"></div>
+    </details>
+
+    <details class="card scr"><summary class="scrsum"><b>Price ladder</b> <span class="c-mut">· levels from the 52-week high and 200-day</span><span class="tag">Tap to open</span></summary>
+      <div style="margin-top:12px">
+        <div class="row" style="justify-content:space-between;margin-bottom:8px">
+          <span class="note" style="margin:0">Pullback and extension levels to plan around</span>
+          <label class="row" style="font-size:11px;color:var(--mut)">Custom pullback %
+            <input id="custDD" type="number" step="0.5" min="1" max="90" placeholder="e.g. 12" style="width:70px" oninput="renderLadder()"></label>
+        </div>
+        <div id="custOut" class="note" style="margin:-4px 0 8px"></div>
+        <div class="g3" style="display:grid;gap:18px;margin:0">
+          <div><div class="lbl" style="margin-bottom:4px">▼ Pullback from 52-week high</div><table class="lad"><tbody id="ladDown"></tbody></table></div>
+          <div><div class="lbl" style="margin-bottom:4px">▲ Extension above 200-day</div><table class="lad"><tbody id="ladUp"></tbody></table></div>
+        </div>
+      </div>
+    </details>
+
+    <details class="card scr" id="scrDet" style="scroll-margin-top:90px"><summary class="scrsum"><b>Full screener</b> <span id="scrSum" class="c-mut"></span><span class="tag">Tap to open all stocks</span></summary><div style="margin-top:12px">
       <div class="hd">
         <div><h2>Stock screener</h2><div class="hint" id="scrHint"></div></div>
         <input id="q" type="text" placeholder="Search ticker / name" oninput="renderTable()" style="width:170px">
@@ -309,20 +328,14 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
         </table>
       </div>
       <div class="row" style="justify-content:space-between;margin-top:8px"><span class="note" id="tcount"></span><button class="btn sm" id="moreBtn" onclick="showAll=!showAll;renderTable()"></button></div>
-    </div></details></div>
+    </div></details>
 
-  <div class="grid g3">
-    <section class="card">
-      <div class="hd">
-        <div><h2>Daily checklist</h2><div class="hint">Resets each day · hints pull from the data</div></div>
-        <span id="ckProg" class="pill n">0 / 5</span>
+    <details class="card scr" id="logDet"><summary class="scrsum"><b>Signal log</b> <span id="logSum" class="c-mut"></span><span class="tag">Tap to open</span></summary>
+      <div style="margin-top:12px">
+        <div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="note" style="margin:0">Written when something changes between visits, on this device only</span><button class="btn sm ghost" onclick="clearLog()">Clear</button></div>
+        <div class="log" id="log"></div>
       </div>
-      <div id="ckList"></div>
-    </section>
-    <section class="card">
-    <div class="hd"><div><h2>Signal log</h2><div class="hint">Written when something changes between visits</div></div><button class="btn sm ghost" onclick="clearLog()">Clear</button></div>
-    <div class="log" id="log"></div>
-  </section>
+    </details>
   </div>
 
   <footer>Screening aid only, not investment advice. Data is end-of-day, built after the close, and nothing here is live.</footer>
@@ -476,11 +489,11 @@ function computeSeries(rows){
 // Everything the toggle changes lives here. Edit these numbers if you want different behaviour.
 const PRESETS = {
   mild: {name:'Pullback',    pct:'~8%',  desc:'Pullback (about 8% drop): flags early and often. Best for spotting routine dips; expect some false alarms.',
-         osTrig:30, osWatch:38, obWatch:62, obTrig:70, rsiLow:35, rsiHigh:65, brLow:30, brHigh:70, ddMin:8,  extHigh:6},
+         osTrig:30, osWatch:38, obWatch:62, obTrig:70, rsiLow:35, rsiHigh:65, brLow:30, brHigh:70, ddMin:8,  extHigh:6,  vixHigh:22, vixLow:16},
   mod:  {name:'Correction',  pct:'~13%', desc:'Correction (about 13% drop): the balanced default. Flags real selloffs, not routine noise.',
-         osTrig:25, osWatch:33, obWatch:67, obTrig:75, rsiLow:30, rsiHigh:70, brLow:25, brHigh:75, ddMin:13, extHigh:10},
+         osTrig:25, osWatch:33, obWatch:67, obTrig:75, rsiLow:30, rsiHigh:70, brLow:25, brHigh:75, ddMin:13, extHigh:10, vixHigh:28, vixLow:14},
   deep: {name:'Bear market', pct:'~25%', desc:'Bear market (about 25% drop): only rare, extreme stretches. Few signals, but the big ones.',
-         osTrig:20, osWatch:28, obWatch:72, obTrig:80, rsiLow:25, rsiHigh:75, brLow:15, brHigh:85, ddMin:25, extHigh:15}
+         osTrig:20, osWatch:28, obWatch:72, obTrig:80, rsiLow:25, rsiHigh:75, brLow:15, brHigh:85, ddMin:25, extHigh:15, vixHigh:35, vixLow:12}
 };
 const SYMS = ['QQQM','SPY','DIA'];
 const META = {
@@ -506,7 +519,7 @@ function sampleSlot(kind){
 }
 function defaults(){
   return {preset:'mod', active:'QQQM', sample:'demo', manual:{QQQM:sampleSlot('demo'), SPY:emptySlot(), DIA:emptySlot()},
-    checklist:{date:todayISO(), done:[false,false,false,false,false]}, lastSeen:{}, pending:null,
+    lastSeen:{}, pending:null,
     log:[{ts:Date.now(), tag:'SYSTEM', msg:'Sample data loaded. Real data appears once the GitHub Action has run.'}]};
 }
 function loadState(){
@@ -527,13 +540,13 @@ function analyze(ix = IX(), st = ST()){
   const c = (label, val, fn, show) => ({label, val, show, ok: val == null ? null : fn(val)});
   const os = [
     c('Ult. Osc < '+st.osWatch, ix.uo, v => v < st.osWatch, fx(ix.uo)),
-    c('RSI < '+st.rsiLow, ix.rsi, v => v < st.rsiLow, fx(ix.rsi)),
+    c('VIX ≥ '+st.vixHigh+' (fear)', ix.vix, v => v >= st.vixHigh, fx(ix.vix)),
     c('Breadth < '+st.brLow+'%', ix.br50, v => v < st.brLow, ix.br50 == null ? '—' : fx(ix.br50)+'%'),
     c('Pullback ≥ '+st.ddMin+'%', dd, v => v <= -st.ddMin, sg(dd))
   ];
   const ob = [
     c('Ult. Osc > '+st.obWatch, ix.uo, v => v > st.obWatch, fx(ix.uo)),
-    c('RSI > '+st.rsiHigh, ix.rsi, v => v > st.rsiHigh, fx(ix.rsi)),
+    c('VIX ≤ '+st.vixLow+' (calm)', ix.vix, v => v <= st.vixLow, fx(ix.vix)),
     c('Breadth > '+st.brHigh+'%', ix.br50, v => v > st.brHigh, ix.br50 == null ? '—' : fx(ix.br50)+'%'),
     c('≥ '+st.extHigh+'% above 200D', v200, v => v >= st.extHigh, sg(v200))
   ];
@@ -571,6 +584,13 @@ function gauge(v, lo, hi){
   return `<div class="gauge"><i class="z os" style="width:${lo}%"></i><i class="z ob" style="left:${hi}%;width:${100-hi}%"></i><i class="mid"></i>${pos==null?'':`<b class="mk" style="left:${pos}%"></b>`}</div>
   <div class="gl"><span>▼ &lt;${lo}</span><span>50</span><span>&gt;${hi} ▲</span></div>`;
 }
+function vixGauge(v, lo, hi){
+  const A = 10, B = 40, pos = v == null ? null : Math.max(0, Math.min(100, (v - A) / (B - A) * 100));
+  const l = Math.max(0, Math.min(100, (lo - A) / (B - A) * 100)), r = Math.max(0, Math.min(100, (hi - A) / (B - A) * 100));
+  return `<div class="gauge"><i class="z" style="left:0;width:${l}%;background:rgba(251,113,133,.35);border-radius:99px 0 0 99px"></i><i class="z" style="left:${r}%;width:${100-r}%;background:rgba(52,211,153,.35);border-radius:0 99px 99px 0"></i>${pos==null?'':`<b class="mk" style="left:${pos}%"></b>`}</div>
+  <div class="gl"><span>calm ≤${lo}</span><span>fear ≥${hi}</span></div>`;
+}
+function vixWord(v, st){ return v == null ? ['no data','c-mut'] : v >= st.vixHigh ? ['Fear (oversold side)','c-os'] : v <= st.vixLow ? ['Calm (overbought side)','c-ob'] : ['Normal range','c-mut']; }
 function zoneWord(v, lo, hi){ if (v==null) return ['no data','c-mut']; if (v<=lo) return ['Oversold','c-os']; if (v>=hi) return ['Overbought','c-ob']; return ['Neutral zone','c-mut']; }
 
 function renderAll(){
@@ -604,6 +624,7 @@ function renderAll(){
   $('pipOSn').textContent = `${A.osN} / ${known(A.os)}`; $('pipOBn').textContent = `${A.obN} / ${known(A.ob)}`;
 
   const [uz,ucl] = zoneWord(ix.uo, st.osTrig, st.obTrig), [rz,rcl] = zoneWord(ix.rsi, st.rsiLow, st.rsiHigh), [bz,bcl] = zoneWord(ix.br50, st.brLow, st.brHigh);
+  const [vz,vcl] = vixWord(ix.vix, st);
   const ddTxt = A.dd == null ? '' : (A.dd > -0.05 ? 'At 52-week high' : sg(A.dd,2) + ' from 52-week high');
   const trend = (v, name) => v == null ? `<span class="c-mut">${name} —</span>` : `<span class="${v>=0?'':'c-warn'}">${name} ${sg(v)}</span>`;
   $('kpis').innerHTML = `
@@ -613,10 +634,11 @@ function renderAll(){
       <div class="note">52-week high ${ix.peak==null?'—':'$'+ix.peak.toFixed(2)}</div></div>
     <div class="card"><div class="lbl">Ultimate Oscillator</div>
       <div class="big mono ${ucl}">${fx(ix.uo,1)}</div><div class="note ${ucl}" style="font-size:12px">${uz}</div>${gauge(ix.uo, st.osTrig, st.obTrig)}</div>
-    <div class="card"><div class="lbl">RSI (14)</div>
-      <div class="big mono ${rcl}">${fx(ix.rsi,1)}</div><div class="note ${rcl}" style="font-size:12px">${rz}</div>${gauge(ix.rsi, st.rsiLow, st.rsiHigh)}</div>
     <div class="card"><div class="lbl">Breadth · ${esc(m.uni)} above 50-day</div>
       <div class="big mono ${bcl}">${ix.br50==null?'—':fx(ix.br50,1)+'%'}</div><div class="note ${bcl}" style="font-size:12px">${bz}${ix.br200!=null?` · above 200D: ${fx(ix.br200,1)}%`:''}</div>${gauge(ix.br50, st.brLow, st.brHigh)}</div>
+    <div class="card"><div class="lbl">VIX · fear gauge</div>
+      <div class="big mono ${vcl}">${ix.vix==null?'—':fx(ix.vix,1)}</div><div class="note ${vcl}" style="font-size:12px">${vz}</div>${ix.vix==null?'':vixGauge(ix.vix, st.vixLow, st.vixHigh)}
+      ${ix.vixpct==null?'':`<div class="note">${ix.vixpct>=99?'Highest in the past year':'Higher than '+ix.vixpct+'% of the past year'}${ix.vix5!=null?` · ${ix.vix5>0?'▲':'▼'} ${ix.vix5>0?'+':''}${fx(ix.vix5,1)} in 5 days`:''}</div>`}</div>
     <div class="card"><div class="lbl">Trend position</div>
       <div class="big mono" style="font-size:20px">${trend(A.v50,'vs 50D')}</div>
       <div class="big mono" style="font-size:20px;margin-top:2px">${trend(A.v200,'vs 200D')}</div>
@@ -627,8 +649,90 @@ function renderAll(){
   $('cfOSn').textContent = `${A.osN}/${known(A.os)}`; $('cfOBn').textContent = `${A.obN}/${known(A.ob)}`;
   $('cfNote').textContent = `Using the "${st.name}" setting. The headline fires when the Ultimate Oscillator passes ${st.osTrig} (oversold) or ${st.obTrig} (overbought).`;
 
-  renderRead(A); renderExtremes(); renderSectors(); renderHist();
-  renderChecklist(A); renderRel(); renderLadder(); renderTable(); renderLog(); drawChart();
+  renderRead(A); renderInternals(); renderExtremes(); renderSectors(); renderHist();
+  renderRel(); renderLadder(); renderTable(); renderLog(); drawChart();
+}
+
+
+/* ---- market internals: breadth trend, highs/lows, volume, signal age ---- */
+function internalsData(){
+  const H = HIST(), st = ST(), n = H.length;
+  const d = {n};
+  const lastWith = k => { for (let i = n-1; i >= 0; i--) if (H[i][k] != null) return i; return -1; };
+  const iB = lastWith('b50');
+  if (iB >= 0){
+    d.b50 = H[iB].b50;
+    const j = iB - 10;
+    if (j >= 0 && H[j].b50 != null) d.b50chg = H[iB].b50 - H[j].b50;
+    if (H[iB].b200 != null){ d.b200 = H[iB].b200; if (j >= 0 && H[j].b200 != null) d.b200chg = H[iB].b200 - H[j].b200; }
+  }
+  const iH = lastWith('nh');
+  if (iH >= 0){ d.nh = H[iH].nh; d.nl = H[iH].nl; }
+  const iV = lastWith('vx');
+  if (iV >= 0 && n > 1){
+    d.vx = H[iV].vx;
+    const a = H[n-1].c, b = H[n-2].c;
+    if (a != null && b) d.dayChg = (a / b - 1) * 100;
+  }
+  const stOf = r => r.uo == null ? null : r.uo <= st.osTrig ? 'OS' : r.uo >= st.obTrig ? 'OB' : 'N';
+  if (n && stOf(H[n-1])){
+    const s0 = stOf(H[n-1]); let i = n - 1;
+    while (i >= 0 && stOf(H[i]) === s0) i--;
+    d.state = s0; d.streak = n - 1 - i;
+    if (s0 === 'N'){
+      let k = i; while (k >= 0 && stOf(H[k]) === 'N') k--;
+      d.lastTrig = k >= 0 ? {state: stOf(H[k]), date: H[k].d} : null;
+    } else {
+      let k = i; while (k >= 0 && stOf(H[k]) !== s0) k--;
+      d.prior = k >= 0 ? {date: H[k].d, ago: n - 1 - k} : null;
+    }
+  }
+  return d;
+}
+const volWord = x => x >= 1.5 ? 'Heavy' : x >= 1.15 ? 'Above normal' : x <= 0.7 ? 'Light' : 'Normal';
+function renderInternals(){
+  const tabOk = HIST().some(r => r.b50 != null);
+  $('tabBreadth').style.display = tabOk ? '' : 'none';
+  if (!tabOk && cMetric === 'b50'){ cMetric = 'price'; setOn('tabsMetric', document.querySelector('#tabsMetric button[data-v="price"]')); }
+  const D = internalsData(), st = ST(), m = META[S.active], w = WATCH(), el = $('intBody');
+  const rows = [];
+  const arrow = v => v > 0.5 ? '▲' : v < -0.5 ? '▼' : '●';
+  if (D.b50 != null){
+    const c = D.b50chg;
+    const word = c == null ? '' : c >= 5 ? 'Improving' : c <= -5 ? 'Weakening' : 'Steady';
+    rows.push(['Breadth', `<b>${fx(D.b50,0)}%</b> of ${esc(m.uni)} stocks above their 50-day`
+      + (c != null ? ` · ${arrow(c)} ${c>0?'+':''}${fx(c,0)} pts in 10 days` : ''),
+      (word ? `${word}. ` : '') + (D.b200 != null ? `Above 200-day: ${fx(D.b200,0)}%${D.b200chg!=null?` (${D.b200chg>0?'+':''}${fx(D.b200chg,0)} pts)`:''}.` : '')]);
+  }
+  if (D.nh != null){
+    const nn = w.length, cnt = p => nn ? ` (${Math.round(p*nn/100)} of ${nn})` : '';
+    const diff = D.nh - D.nl;
+    rows.push(['Highs / lows', `<b>${fx(D.nh,0)}%</b> at 52-week highs${cnt(D.nh)} · <b>${fx(D.nl,0)}%</b> at lows${cnt(D.nl)}`,
+      diff >= 10 ? 'Highs clearly outnumber lows.' : diff <= -10 ? 'Lows clearly outnumber highs.' : 'Mixed: no strong lean either way.']);
+  }
+  if (D.vx != null){
+    const dn = D.dayChg;
+    let hint = '';
+    if (D.vx >= 1.5 && dn != null && dn <= -0.5) hint = ' A selloff on heavy volume can be a washout, but it is not proof of a bottom.';
+    else if (D.vx >= 1.5 && dn != null && dn >= 0.5) hint = ' A rally on heavy volume means broad participation.';
+    else if (D.vx <= 0.7) hint = ' Quiet trading: moves on light volume are less convincing.';
+    rows.push([`Volume`, `<b>${D.vx.toFixed(1)}×</b> its 50-day average${dn != null ? ` on ${dn<0?'a down':'an up'} day (${sg(dn,1)})` : ''}`, `${volWord(D.vx)} (${esc(S.active)} fund volume).${hint}`]);
+  }
+  if (D.state){
+    const word = D.state === 'OS' ? 'oversold' : 'overbought';
+    if (D.state === 'N'){
+      rows.push(['Signal age', D.lastTrig
+        ? `<b>${D.streak} day${D.streak===1?'':'s'}</b> since the last oversold/overbought trigger`
+        : `<b>No trigger</b> in the last ${D.n} trading days`,
+        D.lastTrig ? `Last: ${D.lastTrig.state==='OS'?'oversold':'overbought'} on ${fmtDate(D.lastTrig.date)}.` : 'Neither oversold nor overbought at the trigger level.']);
+    } else {
+      rows.push(['Signal age', `<b>Day ${D.streak + 1}</b> of this ${word} reading`,
+        D.prior ? `The previous ${word} reading ended ${D.prior.ago} trading days ago (${fmtDate(D.prior.date)}).` : `First ${word} reading in the ${D.n} trading days of history.`]);
+    }
+  }
+  el.innerHTML = rows.length
+    ? rows.map(r => `<div class="ir"><div class="k">${r[0]}</div><div><div class="v">${r[1]}</div>${r[2] ? `<div class="s">${r[2]}</div>` : ''}</div></div>`).join('')
+    : `<div class="note" style="font-size:12px">Breadth trend, new highs/lows and volume appear after the next automatic data update.</div>`;
 }
 
 /* ---- plain-English read-out ---- */
@@ -662,6 +766,11 @@ function renderRead(A){
     const sec = sectorStats().filter(x=>x.avg!=null && x.n>=3);
     if (sec.length >= 3) p.push(`Weakest sector: ${esc(sec[0].name)} (avg ${fx(sec[0].avg,0)}); strongest: ${esc(sec[sec.length-1].name)} (avg ${fx(sec[sec.length-1].avg,0)}).`);
   }
+  { const D = internalsData();
+    if (D.b50chg != null && Math.abs(D.b50chg) >= 8) p.push(`Breadth has ${D.b50chg>0?'improved':'weakened'} by ${fx(Math.abs(D.b50chg),0)} points over the last 10 trading days.`);
+    if (D.vx != null && D.vx >= 1.5) p.push(`Volume is heavy at ${D.vx.toFixed(1)}× its 50-day average${D.dayChg!=null?` on ${D.dayChg<0?'a down':'an up'} day`:''}.`);
+    if (D.state && D.state !== 'N') p.push(`This is day ${D.streak+1} of the ${D.state==='OS'?'oversold':'overbought'} reading${D.prior?'':' (the first in the history we have)'}.`); }
+  if (ix.vix != null) p.push(`The VIX is ${fx(ix.vix,1)} (${ix.vix>=st.vixHigh?'fear is elevated':ix.vix<=st.vixLow?'markets are calm, which can mean complacency':'a normal range'}${ix.vixpct!=null?`; ${ix.vixpct>=99?'the highest in the past year':'higher than '+ix.vixpct+'% of the past year'}`:''}).`);
   if (m.rel && ix.spread != null) p.push(`Over the last month the cap-weighted ${S.active==='QQQM'?'Nasdaq-100':'S&P 500'} is ${fx(Math.abs(ix.spread),1)} points ${ix.spread<0?'behind':'ahead of'} its equal-weight twin.`);
   el.innerHTML = p.join(' ');
 }
@@ -698,7 +807,7 @@ function renderHist(){
     ${row('▲ Overbought (UO ≥ '+r.ob.trig+')','c-ob',{episodes:r.ob.episodes,fwd:r.ob.fwd})}
     ${row('Any day (baseline)','c-mut',{fwd:b})}
     </tbody></table></div>
-    <div class="note" style="margin-top:8px;line-height:1.5">Median price change after each signal, share of cases that were up, and the worst case. Compare against the baseline row. Past results are not a forecast, and this is price only: the breadth and pullback checks can't be tested here. Episodes are separated by at least 21 quiet trading days.</div>`;
+    <div class="note" style="margin-top:8px;line-height:1.5">Median price change after each signal, share of cases that were up, and the worst case. Compare against the baseline row. Past results are not a forecast, and this is price only: the breadth, VIX and pullback checks can't be tested here. Episodes are separated by at least 21 quiet trading days.</div>`;
 }
 
 function renderStrip(){
@@ -712,22 +821,6 @@ function renderStrip(){
 }
 function setActive(sym){ S.active = sym; showAll = false; fStatus = 'ALL'; fSector = 'ALL'; hoverI = null; persist(); renderAll(); }
 function setPreset(k){ S.preset = k; persist(); renderAll(); }
-
-/* checklist */
-const CK_ITEMS = [
-  ['Check the data is fresh', A => `${fmtDate(IX().date)}${AUTO ? ' · built ' + new Date(AUTO.generated).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : ' · manual'}`],
-  ['Read the index status', A => `UO ${fx(IX().uo)} · RSI ${fx(IX().rsi)} → ${plain(STATUS[A.key].t).toLowerCase()}`],
-  ['Check breadth', A => `Above 50D: ${IX().br50==null?'—':fx(IX().br50)+'%'} · above 200D: ${IX().br200==null?'—':fx(IX().br200)+'%'}`],
-  ['Check big names vs the rest', A => META[S.active].rel ? `${META[S.active].rel}: ${sg(IX().spread)}` : 'Not applicable for the price-weighted Dow'],
-  ['Scan the screener for extremes', A => { const c = k => WATCH().filter(s=>stockStatus(s)===k).length; return `${c('OS')} oversold · ${c('WOS')} watch ▼ · ${c('WOB')} watch ▲ · ${c('OB')} overbought`; }]
-];
-function renderChecklist(A){
-  if (!S.checklist || S.checklist.date !== todayISO()) S.checklist = {date: todayISO(), done: CK_ITEMS.map(()=>false)};
-  $('ckList').innerHTML = CK_ITEMS.map((it,i) => `<label class="ck ${S.checklist.done[i]?'done':''}"><input type="checkbox" ${S.checklist.done[i]?'checked':''} onchange="toggleCk(${i},this.checked)"><div><b>${i+1}. ${esc(it[0])}</b><span>${esc(it[1](A))}</span></div></label>`).join('');
-  const n = S.checklist.done.filter(Boolean).length;
-  const el = $('ckProg'); el.textContent = `${n} / ${CK_ITEMS.length}`; el.className = 'pill ' + (n===CK_ITEMS.length ? 'os' : 'n');
-}
-function toggleCk(i, v){ S.checklist.done[i] = v; persist(); renderChecklist(analyze()); }
 
 function renderRel(){
   const m = META[S.active], sp = IX().spread;
@@ -800,6 +893,7 @@ function delStock(t){ const sl = S.manual[S.active]; sl.watch = sl.watch.filter(
 /* log */
 function addLog(tag, msg){ S.log.unshift({ts:Date.now(), tag, msg}); S.log = S.log.slice(0,80); }
 function renderLog(){
+  $('logSum').textContent = S.log.length ? `· ${S.log.length} entr${S.log.length===1?'y':'ies'}` : '· nothing yet';
   const col = {STATUS:'var(--acc)', SCREENER:'var(--os)', SNAPSHOT:'var(--mut)', SYSTEM:'var(--dim)'};
   $('log').innerHTML = S.log.length ? S.log.map(l => `<div><span class="t mono">${new Date(l.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</span><span class="g mono" style="color:${col[l.tag]||'var(--mut)'}">[${l.tag}]</span><span>${esc(l.msg)}</span></div>`).join('') : '<div class="c-mut">No entries yet.</div>';
 }
@@ -853,7 +947,7 @@ function drawChart(){
   } else { lo=0; hi=100; }
   const X = i => L + (i/(pts.length-1))*pw, Y = v => T + (1-(v-lo)/(hi-lo))*ph;
   if (cMetric!=='price'){
-    const zl = cMetric==='uo'?st.osTrig:st.rsiLow, zh = cMetric==='uo'?st.obTrig:st.rsiHigh;
+    const zl = cMetric==='uo'?st.osTrig:cMetric==='b50'?st.brLow:st.rsiLow, zh = cMetric==='uo'?st.obTrig:cMetric==='b50'?st.brHigh:st.rsiHigh;
     g.fillStyle='rgba(52,211,153,.10)'; g.fillRect(L,Y(zl),pw,Y(0)-Y(zl));
     g.fillStyle='rgba(251,113,133,.10)'; g.fillRect(L,Y(100),pw,Y(zh)-Y(100));
     g.setLineDash([4,4]); g.strokeStyle='rgba(148,163,184,.35)'; g.lineWidth=1;
@@ -873,7 +967,7 @@ function drawChart(){
     g.strokeStyle='rgba(255,255,255,.3)'; g.lineWidth=1; g.beginPath(); g.moveTo(x,T); g.lineTo(x,T+ph); g.stroke();
     g.fillStyle='#fff'; g.beginPath(); g.arc(x,Y(p[key]),3.5,0,7); g.fill();
     const tip = $('tip'); tip.style.display='block';
-    tip.innerHTML = `<b>${fmtDate(p.d)}</b><br>` + (cMetric==='price' ? `Close $${p.c.toFixed(2)}${p.s50!=null?`<br>50D $${p.s50.toFixed(2)}`:''}${p.s200!=null?`<br>200D $${p.s200.toFixed(2)}`:''}` : `${cMetric==='uo'?'Ult. Osc':'RSI'} ${p[key].toFixed(1)}`);
+    tip.innerHTML = `<b>${fmtDate(p.d)}</b><br>` + (cMetric==='price' ? `Close $${p.c.toFixed(2)}${p.s50!=null?`<br>50D $${p.s50.toFixed(2)}`:''}${p.s200!=null?`<br>200D $${p.s200.toFixed(2)}`:''}` : `${cMetric==='uo'?'Ult. Osc':cMetric==='b50'?'Above 50-day':'RSI'} ${p[key].toFixed(1)}${cMetric==='b50'?'%':''}`);
     tip.style.left = Math.min(x+12, W-130) + 'px'; tip.style.top = '8px';
   }
 }
