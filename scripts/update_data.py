@@ -12,6 +12,7 @@ Run locally:  python scripts/update_data.py
 import io
 import json
 import os
+import re
 import sys
 import time
 import datetime as dt
@@ -168,6 +169,8 @@ def concentration(sym, cons, prices):
     """Top-10 / top-3 weight. Nasdaq-100: approximate (market-cap share; the real index caps some weights).
     Dow: price-weighted, so weight = price share. S&P 500: skipped (500 lookups is too fragile)."""
     tickers = [t for t, _, _ in cons]
+    if not tickers:
+        return {}
     if sym == "DIA":
         w = {t: float(prices[t]["Close"].iloc[-1]) for t in tickers if t in prices}
         approx = False
@@ -224,25 +227,87 @@ def signal_stats(df):
                 years=round(len(c) / 252, 1), baseline=base, rules=rules)
 
 
+TICKER_RE = re.compile(r"^[A-Z][A-Z0-9]{0,5}(-[A-Z0-9]{1,2})?$")
+
+
+def clean_ticker(v):
+    """'NASDAQ: AAPL' -> 'AAPL', 'BRK.B' -> 'BRK-B', footnote marks removed. None if it is not a ticker."""
+    s = re.sub(r"\[.*?\]", "", str(v)).strip().upper()
+    if ":" in s:
+        s = s.split(":")[-1].strip()
+    s = s.split()[0] if s.split() else ""
+    s = s.replace(".", "-")
+    return s if TICKER_RE.match(s) else None
+
+
 def wiki_constituents(cfg):
-    """[(ticker, name, sector)] from the index's Wikipedia page."""
+    """[(ticker, name, sector)] from the index's Wikipedia page. Lenient about table shape."""
     html = requests.get(cfg["wiki"], headers=UA, timeout=30).text
     for t in pd.read_html(io.StringIO(html)):
         t.columns = [" ".join(map(str, c)).strip() if isinstance(c, tuple) else str(c).strip() for c in t.columns]
-        low = {c.lower(): c for c in t.columns}
-        tcol = next((low[k] for k in ("ticker", "symbol") if k in low), None)
-        ncol = next((low[k] for k in ("company", "security") if k in low), None)
-        scol = next((c for c in t.columns if "sector" in c.lower() or "industry" in c.lower()), None)
-        if not tcol or not (cfg["min_rows"] <= len(t) <= cfg["max_rows"]):
+        tcol = next((c for c in t.columns if any(k in c.lower() for k in ("ticker", "symbol"))), None)
+        if tcol is None:
             continue
-        rows = []
+        ncol = next((c for c in t.columns if any(k in c.lower() for k in ("company", "security", "name"))), None)
+        scol = next((c for c in t.columns if "sector" in c.lower()), None) or \
+            next((c for c in t.columns if "industry" in c.lower()), None)
+        rows, seen = [], set()
         for _, r in t.iterrows():
-            tk = str(r[tcol]).strip().upper().replace(".", "-")
-            if tk and tk != "NAN":
+            tk = clean_ticker(r[tcol])
+            if tk and tk not in seen:
+                seen.add(tk)
                 rows.append((tk, str(r[ncol]).strip() if ncol else "", str(r[scol]).strip() if scol else "Other"))
         if cfg["min_rows"] <= len(rows) <= cfg["max_rows"]:
             return rows
     raise ValueError("no suitable constituents table found")
+
+
+def nasdaq_api_ndx():
+    """Nasdaq's own Nasdaq-100 list (unofficial endpoint). [(ticker, name, sector)]"""
+    r = requests.get("https://api.nasdaq.com/api/quote/list-type/nasdaq100",
+                     headers={**UA, "Accept": "application/json"}, timeout=30)
+    j = r.json()["data"]
+    rows = (j.get("data") or j).get("rows", [])
+    out = [(clean_ticker(x["symbol"]), x.get("companyName", ""), "Other") for x in rows if clean_ticker(x.get("symbol", ""))]
+    if not 85 <= len(out) <= 125:
+        raise ValueError(f"unexpected row count {len(out)}")
+    return out
+
+
+# Last-resort lists (only used if every live source fails). May be slightly out of date; any ticker that no
+# longer trades is simply skipped.
+FALLBACK = {
+    "DIA": "AAPL AMGN AMZN AXP BA CAT CRM CSCO CVX DIS GS HD HON IBM JNJ JPM KO MCD MMM MRK MSFT NKE NVDA PG SHW TRV UNH V VZ WMT",
+    "QQQM": ("AAPL ABNB ADBE ADI ADP ADSK AEP AMAT AMD AMGN AMZN APP ARM ASML AVGO AXON AZN BIIB BKNG BKR CCEP CDNS CEG CHTR "
+             "CMCSA COST CPRT CRWD CSCO CSGP CSX CTAS CTSH DASH DDOG DXCM EA EXC FANG FAST FTNT GEHC GFS GILD GOOG GOOGL HON "
+             "IDXX INTC INTU ISRG KDP KHC KLAC LIN LRCX LULU MAR MCHP MDLZ MELI META MNST MRVL MSFT MSTR MU NFLX NVDA NXPI "
+             "ODFL ON ORLY PANW PAYX PCAR PDD PEP PLTR PYPL QCOM REGN ROP ROST SBUX SNPS TEAM TMUS TRI TSLA TTD TTWO TXN "
+             "VRSK VRTX WBD WDAY XEL ZS"),
+}
+
+
+def get_constituents(sym, cfg, prev):
+    """Try Wikipedia, then (Nasdaq-100 only) Nasdaq's API, then the previous run, then the built-in list."""
+    attempts = [("Wikipedia", lambda: wiki_constituents(cfg))]
+    if sym == "QQQM":
+        attempts.append(("Nasdaq API", nasdaq_api_ndx))
+    for label, fn in attempts:
+        try:
+            rows = fn()
+            print(f"{sym}: {len(rows)} constituents from {label}")
+            return rows
+        except Exception as e:  # noqa
+            print(f"{sym}: {label} failed ({e})", file=sys.stderr)
+    old = prev.get("indices", {}).get(sym, {}).get("watch", [])
+    if old:
+        print(f"{sym}: reusing {len(old)} tickers from the previous run", file=sys.stderr)
+        return [(w["ticker"], w.get("name", ""), w.get("sector", "Other")) for w in old]
+    if sym in FALLBACK:
+        rows = [(t, "", "Other") for t in FALLBACK[sym].split()]
+        print(f"{sym}: using built-in fallback list ({len(rows)} tickers)", file=sys.stderr)
+        return rows
+    print(f"{sym}: no constituent list available; stock screener and breadth will be empty", file=sys.stderr)
+    return []
 
 
 # ---------------------------------------------------------------- builders
@@ -277,9 +342,9 @@ def build_index(sym, df, cons, prices, eq_df):
             a200 += c > cs["s200"][-1]
         watch.append(dict(ticker=tk, name=name, sector=sector, uo=r2(cs["uo"][-1]),
                           rsi=r2(cs["rsi"][-1]), vs200=r2(v200)))
-    need = 0.6 * len(cons)
-    br50 = round(100 * a50 / n50, 1) if n50 >= need else None
-    br200 = round(100 * a200 / n200, 1) if n200 >= need else None
+    need = max(1, 0.6 * len(cons))
+    br50 = round(100 * a50 / n50, 1) if n50 and n50 >= need else None
+    br200 = round(100 * a200 / n200, 1) if n200 and n200 >= need else None
 
     spread = None
     if eq_df is not None and len(eq_df) > 22 and n > 22:
@@ -301,15 +366,7 @@ def main():
         except Exception:
             prev = {}
 
-    cons = {}
-    for sym, cfg in INDICES.items():
-        try:
-            cons[sym] = wiki_constituents(cfg)
-            print(f"{sym}: {len(cons[sym])} constituents from Wikipedia")
-        except Exception as e:  # noqa
-            old = prev.get("indices", {}).get(sym, {}).get("watch", [])
-            cons[sym] = [(w["ticker"], w.get("name", ""), w.get("sector", "Other")) for w in old]
-            print(f"{sym}: Wikipedia failed ({e}); reusing {len(cons[sym])} previous tickers", file=sys.stderr)
+    cons = {sym: get_constituents(sym, cfg, prev) for sym, cfg in INDICES.items()}
 
     etfs = set(INDICES) | {c["eq"] for c in INDICES.values() if c["eq"]}
     everything = sorted(etfs | {t for lst in cons.values() for t, _, _ in lst})
@@ -329,7 +386,13 @@ def main():
             if sym in prev.get("indices", {}):
                 result[sym] = prev["indices"][sym]
             continue
-        result[sym] = build_index(sym, prices[sym], cons[sym], prices, prices.get(cfg["eq"]) if cfg["eq"] else None)
+        try:
+            result[sym] = build_index(sym, prices[sym], cons[sym], prices, prices.get(cfg["eq"]) if cfg["eq"] else None)
+        except Exception as e:  # noqa
+            print(f"{sym}: build failed ({e}); keeping previous", file=sys.stderr)
+            if sym in prev.get("indices", {}):
+                result[sym] = prev["indices"][sym]
+            continue
         try:
             result[sym]["index"].update(concentration(sym, cons[sym], prices))
         except Exception as e:  # noqa
