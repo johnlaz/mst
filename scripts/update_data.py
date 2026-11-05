@@ -285,8 +285,40 @@ FALLBACK = {
              "VRSK VRTX WBD WDAY XEL ZS"),
 }
 
+# Built-in sector labels, used only when the live list has none (so sector views still work offline).
+_SEC = {"IT": "Information Technology", "HC": "Health Care", "CD": "Consumer Discretionary", "CS": "Consumer Staples",
+        "FN": "Financials", "IN": "Industrials", "EN": "Energy", "MT": "Materials", "UT": "Utilities",
+        "CM": "Communication Services", "RE": "Real Estate"}
+_SECMAP = {}
+for _code, _tk in {
+    "IT": "AAPL ADBE ADI ADSK AMAT AMD APP ARM ASML AVGO CDNS CRM CRWD CSCO CTSH DDOG FTNT GFS IBM INTC INTU KLAC LRCX MCHP MRVL MSFT MSTR MU NVDA NXPI ON PANW PLTR QCOM ROP SNPS TEAM TXN WDAY ZS",
+    "HC": "AMGN AZN BIIB DXCM GEHC GILD IDXX ISRG JNJ MRK REGN UNH VRTX",
+    "CD": "ABNB AMZN BKNG DASH HD LULU MAR MCD MELI NKE ORLY PDD ROST SBUX TSLA",
+    "CS": "CCEP COST KDP KHC KO MDLZ MNST PEP PG WMT",
+    "FN": "AXP GS JPM PYPL TRV V",
+    "IN": "ADP AXON BA CAT CPRT CSX CTAS FAST HON MMM ODFL PAYX PCAR TRI VRSK",
+    "EN": "BKR CVX FANG", "MT": "LIN SHW", "UT": "AEP CEG EXC XEL", "RE": "CSGP",
+    "CM": "CHTR CMCSA DIS EA GOOG GOOGL META NFLX TMUS TTD TTWO VZ WBD",
+}.items():
+    for _t in _tk.split():
+        _SECMAP[_t] = _SEC[_code]
+
+
+def fill_sectors(rows):
+    """Replace blank/Other sectors with the built-in label when we know the ticker."""
+    out = []
+    for tk, name, sec in rows:
+        if (not sec or sec in ("Other", "nan")) and tk in _SECMAP:
+            sec = _SECMAP[tk]
+        out.append((tk, name, sec))
+    return out
+
 
 def get_constituents(sym, cfg, prev):
+    return fill_sectors(_get_constituents(sym, cfg, prev))
+
+
+def _get_constituents(sym, cfg, prev):
     """Try Wikipedia, then (Nasdaq-100 only) Nasdaq's API, then the previous run, then the built-in list."""
     attempts = [("Wikipedia", lambda: wiki_constituents(cfg))]
     if sym == "QQQM":
