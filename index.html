@@ -104,7 +104,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
 tr.reached td{color:var(--mut)}
 tr.next td{background:var(--acc-bg)}
 .lad td:first-child{font-weight:700}
-input[type=text],input[type=number],input[type=date],select,textarea{background:#0a0f19;border:1px solid var(--line2);border-radius:7px;padding:6px 8px;width:100%;outline:none}
+input[type=text],input[type=password],input[type=number],input[type=date],select,textarea{background:#0a0f19;border:1px solid var(--line2);border-radius:7px;padding:6px 8px;width:100%;outline:none}
 input:focus,textarea:focus{border-color:var(--acc)}
 textarea{resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
 .chip{background:#0a0f19;border:1px solid var(--line2);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:600;color:var(--mut);cursor:pointer}
@@ -130,6 +130,8 @@ legend{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--
 .f label input{margin-top:4px}
 @media(max-width:520px){.f{grid-template-columns:1fr 1fr}}
 .msg{font-size:11px;margin-top:6px;color:var(--mut)}
+.fmpstat{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fmpstat.on{padding:8px 10px;border:1px solid rgba(52,211,153,.35);background:var(--os-bg);border-radius:9px}
 #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1b2740;border:1px solid #34456a;padding:9px 14px;border-radius:9px;font-size:12px;display:none;z-index:60}
 .read{margin-top:14px;padding:12px 14px;background:#0a0f19;border:1px solid var(--line);border-radius:10px;font-size:13px;line-height:1.65;color:#cbd5e1}
 .read b{color:#fff}
@@ -389,10 +391,12 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
       <div class="row" style="justify-content:flex-end;margin-bottom:14px"><button class="btn pri" onclick="saveUpdate()">Save snapshot</button></div>
     </div>
 
-    <fieldset>
+    <fieldset id="fmpSet">
       <legend>Optional: FMP key</legend>
-      <div class="note" style="margin:0 0 8px;line-height:1.5">A free Financial Modeling Prep key lets manual mode pull price history for you (1 call per index) instead of pasting a CSV. It is stored only in this browser and is never included in exports. The free plan appears not to include ETF holdings, so it cannot supply index weights. Browsers may also block direct FMP calls; if so, add the key as the <span class="mono">FMP_API_KEY</span> secret on GitHub instead, which the daily Action uses as a backup source.</div>
-      <div class="row"><input id="fmpKey" type="password" placeholder="FMP API key" autocomplete="off" style="flex:1;min-width:180px"><button class="btn" onclick="saveFmpKey()">Save</button><button class="btn" onclick="clearFmpKey()">Clear</button></div>
+      <div id="fmpStatus" class="fmpstat"></div>
+      <div class="note" style="margin:8px 0 10px;line-height:1.5"><b>Where it is used:</b> only by the "Fetch from FMP" button in manual mode, in this browser. The automatic daily update does not use this box. If you want FMP as a backup source for that, add the key as a <span class="mono">FMP_API_KEY</span> secret on GitHub instead. Either way the key is optional, and it is never included in exports.</div>
+      <div class="row"><input id="fmpKey" type="password" autocomplete="off" style="flex:1;min-width:180px"><button class="btn pri" id="fmpSaveBtn" onclick="saveFmpKey()">Save key</button></div>
+      <div class="row" style="margin-top:8px"><button class="btn sm" id="fmpTestBtn" onclick="testFmpKey()">Test key</button><button class="btn sm ghost" id="fmpClearBtn" onclick="clearFmpKey()">Remove key</button></div>
       <div class="msg" id="fmpMsg"></div>
     </fieldset>
 
@@ -1008,7 +1012,7 @@ function openDrawer(){
     $('csvText').value=''; $('csvMsg').textContent=''; S.pending=null;
     $('fmpBtn').style.display = S.fmpKey ? '' : 'none';
   }
-  $('fmpMsg').textContent = S.fmpKey ? 'A key is saved in this browser.' : '';
+  renderFmp(); $('fmpMsg').textContent = '';
   $('veil').style.display='block'; dr.classList.add('open'); dr.setAttribute('aria-hidden','false');
 }
 function closeDrawer(){ $('veil').style.display='none'; $('drawer').classList.remove('open'); $('drawer').setAttribute('aria-hidden','true'); }
@@ -1047,8 +1051,47 @@ async function fetchFmp(){
     msg.textContent = '✗ ' + (e instanceof TypeError ? 'The browser blocked the request or you are offline. Use the GitHub secret route or paste a CSV.' : e.message);
   }
 }
-function saveFmpKey(){ const v = $('fmpKey').value.trim(); if (!v) return toast('Paste a key first.'); S.fmpKey = v; persist(); $('fmpKey').value = ''; $('fmpMsg').textContent = 'Saved in this browser.'; $('fmpBtn').style.display = AUTO ? 'none' : ''; }
-function clearFmpKey(){ delete S.fmpKey; persist(); $('fmpMsg').textContent = 'Key removed.'; $('fmpBtn').style.display = 'none'; }
+function renderFmp(){
+  const k = S.fmpKey, st = $('fmpStatus');
+  st.className = 'fmpstat ' + (k ? 'on' : '');
+  st.innerHTML = k
+    ? `<span class="pill os">✓ Key saved</span><span class="mono c-mut">••••${esc(k.slice(-4))}</span><span class="note" style="margin:0">stored in this browser</span>`
+    : `<span class="pill n">No key saved</span>`;
+  $('fmpKey').placeholder = k ? 'Paste a new key to replace the saved one' : 'Paste your FMP API key';
+  $('fmpTestBtn').style.display = $('fmpClearBtn').style.display = k ? '' : 'none';
+  $('fmpSaveBtn').textContent = k ? 'Replace key' : 'Save key';
+}
+function saveFmpKey(){
+  const v = $('fmpKey').value.trim(), m = $('fmpMsg');
+  if (!v){ m.style.color = 'var(--ob)'; m.textContent = '✗ Paste a key into the box first.'; return; }
+  S.fmpKey = v; persist(); $('fmpKey').value = ''; renderFmp();
+  m.style.color = 'var(--os)'; m.textContent = '✓ Saved. The box clears on purpose so the key is not left on screen.';
+  toast('FMP key saved');
+  const b = $('fmpSaveBtn'); b.textContent = 'Saved ✓'; setTimeout(renderFmp, 2000);
+  $('fmpBtn').style.display = AUTO ? 'none' : '';
+}
+function clearFmpKey(){
+  delete S.fmpKey; persist(); renderFmp();
+  const m = $('fmpMsg'); m.style.color = 'var(--mut)'; m.textContent = 'Key removed from this browser.';
+  $('fmpBtn').style.display = 'none'; toast('FMP key removed');
+}
+async function testFmpKey(){
+  const m = $('fmpMsg');
+  if (!S.fmpKey){ m.style.color = 'var(--ob)'; m.textContent = '✗ Save a key first.'; return; }
+  m.style.color = 'var(--mut)'; m.textContent = 'Testing with one request to FMP…';
+  try {
+    const r = await fetch(`https://financialmodelingprep.com/stable/quote?symbol=SPY&apikey=${encodeURIComponent(S.fmpKey)}`);
+    const j = await r.json().catch(() => null);
+    if (r.status === 429){ m.style.color = 'var(--warn)'; m.textContent = 'FMP says the daily limit was reached. The key itself looks fine.'; }
+    else if (r.status === 401 || r.status === 403 || (j && !Array.isArray(j) && (j['Error Message'] || j.error))){
+      m.style.color = 'var(--ob)'; m.textContent = '✗ FMP rejected this key. Check it was copied in full, then use Replace key.'; }
+    else if (r.ok && Array.isArray(j) && j.length){ m.style.color = 'var(--os)'; m.textContent = '✓ FMP accepted the key.'; }
+    else { m.style.color = 'var(--warn)'; m.textContent = `FMP answered (HTTP ${r.status}) but the reply was unexpected, so I cannot confirm the key.`; }
+  } catch(e){
+    m.style.color = 'var(--warn)';
+    m.textContent = 'Your browser blocked the test request (common with direct FMP calls). That does not mean the key is wrong.';
+  }
+}
 
 function parseWatch(txt){
   const lines = txt.replace(/\r/g,'').split('\n').map(l=>l.trim()).filter(Boolean);
