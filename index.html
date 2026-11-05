@@ -106,6 +106,8 @@ tr:hover td{background:rgba(255,255,255,.015)}
 tr.reached td{color:var(--mut)}
 tr.next td{background:var(--acc-bg)}
 .lad td:first-child{font-weight:700}
+.custout{font-size:13px;line-height:1.5;color:#e8edf5;background:var(--acc-bg);border:1px solid rgba(129,140,248,.35);border-radius:9px;padding:9px 12px;margin:0 0 12px}
+tr.mine td{background:rgba(129,140,248,.18)}
 input[type=text],input[type=password],input[type=number],input[type=date],select,textarea{background:#0a0f19;border:1px solid var(--line2);border-radius:7px;padding:6px 8px;width:100%;outline:none}
 input:focus,textarea:focus{border-color:var(--acc)}
 textarea{resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
@@ -316,11 +318,11 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
     <details class="card scr"><summary class="scrsum"><b>Price ladder</b> <span class="c-mut">· levels from the 52-week high and 200-day</span><span class="tag">Tap to open</span></summary>
       <div style="margin-top:12px">
         <div class="row" style="justify-content:space-between;margin-bottom:8px">
-          <span class="note" style="margin:0">Pullback and extension levels to plan around</span>
-          <label class="row" style="font-size:11px;color:var(--mut)">Custom pullback %
+          <span class="note" style="margin:0">Price levels to watch. The next one is highlighted.</span>
+          <label class="row" style="font-size:11px;color:var(--mut)">Try your own pullback %
             <input id="custDD" type="number" step="0.5" min="1" max="90" placeholder="e.g. 12" style="width:70px" oninput="renderLadder()"></label>
         </div>
-        <div id="custOut" class="note" style="margin:-4px 0 8px"></div>
+        <div id="custOut" class="custout" style="display:none"></div>
         <div class="g3" style="display:grid;gap:18px;margin:0">
           <div><div class="lbl" style="margin-bottom:4px">▼ Pullback from 52-week high</div><table class="lad"><tbody id="ladDown"></tbody></table></div>
           <div><div class="lbl" style="margin-bottom:4px">▲ Extension above 200-day</div><table class="lad"><tbody id="ladUp"></tbody></table></div>
@@ -889,18 +891,24 @@ function renderRel(){
 
 function renderLadder(){
   const ix = IX(), A = analyze();
+  const cv0 = num($('custDD').value), cv = (cv0 != null && cv0 >= 0.5 && cv0 <= 90) ? Math.round(cv0*10)/10 : null;
   const down = [5,8,10,12,15,20,25,30]; let nextMarked = false;
+  if (cv != null && !down.includes(cv)) { down.push(cv); down.sort((a,b)=>a-b); }
   $('ladDown').innerHTML = (ix.peak && ix.price!=null) ? down.map(p => {
     const px = ix.peak*(1-p/100), reached = A.dd != null && -A.dd >= p, next = !reached && !nextMarked; if (next) nextMarked = true;
-    return `<tr class="${reached?'reached':next?'next':''}"><td>−${p}%</td><td class="mono">$${px.toFixed(2)}</td><td class="mono c-mut">${sg((px/ix.price-1)*100)}</td><td style="text-align:right">${reached?'<span class="c-os">reached</span>':next?'<span style="color:var(--acc)">next</span>':''}</td></tr>`;
+    const mine = cv != null && p === cv;
+    return `<tr class="${mine?'mine':reached?'reached':next?'next':''}"><td>−${p}%${mine?' <span class="pill n" style="margin-left:4px">your level</span>':''}</td><td class="mono">$${px.toFixed(2)}</td><td class="mono c-mut">${sg((px/ix.price-1)*100)}</td><td style="text-align:right">${reached?'<span class="c-os">reached</span>':next?'<span style="color:var(--acc)">next</span>':''}</td></tr>`;
   }).join('') : `<tr><td class="c-mut">No price data yet</td></tr>`;
   const up = [5,10,15,20]; let nextU = false;
   $('ladUp').innerHTML = (ix.sma200 && ix.price!=null) ? up.map(p => {
     const px = ix.sma200*(1+p/100), reached = A.v200 != null && A.v200 >= p, next = !reached && !nextU; if (next) nextU = true;
     return `<tr class="${reached?'reached':next?'next':''}"><td>+${p}%</td><td class="mono">$${px.toFixed(2)}</td><td class="mono c-mut">${sg((px/ix.price-1)*100)}</td><td style="text-align:right">${reached?'<span class="c-ob">reached</span>':next?'<span style="color:var(--acc)">next</span>':''}</td></tr>`;
   }).join('') : `<tr><td class="c-mut">Needs the 200-day average</td></tr>`;
-  const cv = num($('custDD').value);
-  $('custOut').textContent = (cv && ix.peak && ix.price!=null) ? `A ${cv}% pullback = $${(ix.peak*(1-cv/100)).toFixed(2)} (${sg((ix.peak*(1-cv/100)/ix.price-1)*100,2)} from now)` : '';
+  const co = $('custOut');
+  if (cv != null && ix.peak && ix.price != null){
+    const px = ix.peak*(1-cv/100);
+    co.style.display = ''; co.innerHTML = `<b>A ${cv}% pullback from the 52-week high</b> is <b class="mono">$${px.toFixed(2)}</b>, which is ${fx(Math.abs((px/ix.price-1)*100),1)}% ${px<ix.price?'below':'above'} today's price. It is marked in the table below.`;
+  } else { co.style.display = 'none'; co.textContent = ''; }
 }
 
 /* screener */
@@ -1048,7 +1056,7 @@ function openDrawer(){
   const dr = $('drawer'); dr.classList.toggle('auto', !!AUTO);
   if (AUTO){
     const n = Object.entries(AUTO.indices).map(([k,v]) => `${k}: ${v.watch.length} stocks, data through ${v.index.date}`).join('<br>');
-    $('autoInfo').innerHTML = `Built ${esc(new Date(AUTO.generated).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'}))} by the scheduled GitHub Action.<br><br>${n}<br><br>While auto data is present, manual entry is switched off.`;
+    $('autoInfo').innerHTML = `Built ${esc(new Date(AUTO.generated).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'}))} by the scheduled GitHub Action.<br><br>${n}<br><br>Automatic data is on, so the manual entry forms are hidden. There is no switch: they reappear on their own only if the automatic data can't be loaded.`;
   } else {
     const ix = S.manual[S.active].index;
     $('mSym').textContent = S.active;
