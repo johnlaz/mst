@@ -2,16 +2,24 @@ name: Update market data
 
 on:
   schedule:
-    # Weekdays 22:30 UTC = 5:30 PM EST / 6:30 PM EDT, after the US close
-    - cron: "30 22 * * 1-5"
+    # Three attempts per weekday evening. GitHub sometimes delays or skips a scheduled run,
+    # so the later ones act as backups. If nothing changed, a run commits nothing.
+    - cron: "30 22 * * 1-5"   # 5:30 PM EST / 6:30 PM EDT, after the US close
+    - cron: "30 23 * * 1-5"   # backup, one hour later
+    - cron: "15 1 * * 2-6"    # backup, evening catch-up (still the same trading day in the US)
   workflow_dispatch: {}
 
 permissions:
   contents: write
 
+concurrency:
+  group: update-market-data
+  cancel-in-progress: false
+
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -34,4 +42,11 @@ jobs:
           git config user.name "market-data-bot"
           git config user.email "actions@users.noreply.github.com"
           git add data/market.json
-          git diff --cached --quiet || (git commit -m "Update market data" && git push)
+          if git diff --cached --quiet; then
+            echo "No data change."
+          else
+            git commit -m "Update market data"
+            # If you pushed a change while this was running, sit on top of it instead of failing.
+            git pull --rebase origin main
+            git push
+          fi
