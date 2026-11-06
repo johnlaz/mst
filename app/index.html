@@ -150,6 +150,37 @@ legend{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--
 .hv{font-size:17px;font-weight:700}
 .hs{font-size:11px;color:#cbd5e1;margin-top:2px;line-height:1.35}
 .hw{font-size:10px;color:var(--dim);margin-top:2px}
+
+/* stock chart sheet */
+.clk{cursor:pointer}
+.xr.clk:hover,tr.clk:hover td{background:rgba(129,140,248,.08)}
+.xr.clk:focus-visible,tr.clk:focus-visible{outline:1px solid var(--acc);outline-offset:-1px}
+body.noscroll{overflow:hidden}
+.stk{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+.stk[hidden]{display:none}
+.stk-bg{position:absolute;inset:0;background:rgba(3,6,12,.72);backdrop-filter:blur(2px)}
+.stk-card{position:relative;width:100%;max-width:720px;max-height:calc(100vh - 32px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:0 20px 60px rgba(0,0,0,.55)}
+.stk-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.stk-t{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.01em}
+.stk-s{font-size:12px;color:var(--mut);margin-top:3px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.stk-k{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+.stk-n{background:#0a0f19;border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+.stk-n .l{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.stk-n .v{font-size:15px;font-weight:700;margin-top:2px}
+.stk-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.stk-c{position:relative;height:260px;border:1px solid var(--line);border-radius:10px;background:#0a0f19}
+.stk-c canvas{position:absolute;inset:0;width:100%;height:100%}
+.stk-c .empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;font-size:12px;color:var(--mut)}
+#stkTip{position:absolute;top:8px;display:none;pointer-events:none;background:#0d1320;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:11px;line-height:1.5;z-index:2}
+.stk-f{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:12px}
+.stk-f a{color:var(--acc);font-weight:600;text-decoration:none}
+.stk-f a:hover{text-decoration:underline}
+@media(max-width:600px){
+  .stk{align-items:flex-end;padding:0}
+  .stk-card{max-width:none;border-radius:16px 16px 0 0;max-height:92vh;padding:14px 14px 18px}
+  .stk-k{grid-template-columns:repeat(2,1fr)}
+  .stk-c{height:230px}
+}
 .msg{font-size:11px;margin-top:6px;color:var(--mut)}
 .fmpstat{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .fmpstat.on{padding:8px 10px;border:1px solid rgba(52,211,153,.35);background:var(--os-bg);border-radius:9px}
@@ -369,7 +400,7 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
     </details>
   </div>
 
-  <footer>Screening aid only, not investment advice. Data is end-of-day, built after the close, and nothing here is live. <span id="verStamp" style="opacity:.6;white-space:nowrap">v1.0.0</span></footer>
+  <footer>Screening aid only, not investment advice. Data is end-of-day, built after the close, and nothing here is live. <span id="verStamp" style="opacity:.6;white-space:nowrap">v1.1.0</span></footer>
 </main>
 
 <div id="veil" onclick="closeDrawer()"></div>
@@ -446,6 +477,19 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
 </aside>
 <div id="toast"></div>
 
+<div id="stk" class="stk" hidden role="dialog" aria-modal="true" aria-labelledby="stkT">
+  <div class="stk-bg" onclick="closeStock()"></div>
+  <div class="stk-card">
+    <div class="stk-h"><div><div class="stk-t" id="stkT"></div><div class="stk-s" id="stkS"></div></div><button class="x" id="stkX" onclick="closeStock()" aria-label="Close" title="Close">✕</button></div>
+    <div class="stk-k" id="stkK"></div>
+    <div class="stk-bar">
+      <div class="tabs" id="stkView"><button data-v="px" class="on">Price</button><button data-v="rsi">RSI</button></div>
+      <div class="tabs" id="stkRange"><button data-v="63">3M</button><button data-v="126" class="on">6M</button></div>
+    </div>
+    <div class="stk-c"><canvas id="stkCv"></canvas><div id="stkTip"></div><div class="empty" id="stkMsg" style="display:none"></div></div>
+    <div class="stk-f"><span class="note" id="stkLeg" style="margin:0"></span><a id="stkLink" href="#" target="_blank" rel="noopener noreferrer">Full chart on Yahoo Finance ›</a></div>
+  </div>
+</div>
 <script>
 /* ================= helpers ================= */
 const $ = id => document.getElementById(id);
@@ -817,12 +861,12 @@ function renderRead(A){
 function miniBar(v, st){ return v==null ? '' : `<span class="mini" style="background:linear-gradient(to right,rgba(52,211,153,.4) 0 ${st.osTrig}%,#1a2336 ${st.osTrig}% ${st.obTrig}%,rgba(251,113,133,.4) ${st.obTrig}% 100%)"><i style="left:${Math.max(0,Math.min(100,v))}%"></i></span>`; }
 function renderExtremes(){
   const st = ST(), w = WATCH().filter(s => s.uo != null);
-  const row = (s, cls) => `<div class="xr"><b>${esc(s.ticker)}</b><span class="nm">${esc(s.name||'')}</span><span class="mono ${cls}">${fx(s.uo)}</span>${miniBar(s.uo, st)}<span class="mono c-mut" style="min-width:92px;text-align:right;font-size:11px">${s.vs200==null?'':sg(s.vs200,0)+' vs 200-day'}</span></div>`;
+  const row = (s, cls) => `<div class="xr clk" data-stk="${esc(s.ticker)}" tabindex="0" role="button" aria-label="Open chart for ${esc(s.ticker)}"><b>${esc(s.ticker)}</b><span class="nm">${esc(s.name||'')}</span><span class="mono ${cls}">${fx(s.uo)}</span>${miniBar(s.uo, st)}<span class="mono c-mut" style="min-width:92px;text-align:right;font-size:11px">${s.vs200==null?'':sg(s.vs200,0)+' vs 200-day'}</span></div>`;
   const os = w.filter(s => ['OS','WOS'].includes(stockStatus(s))).sort((a,b)=>a.uo-b.uo);
   const ob = w.filter(s => ['OB','WOB'].includes(stockStatus(s))).sort((a,b)=>b.uo-a.uo);
   const none = '<div class="note" style="padding:10px 0;font-size:12px">None flagged right now.</div>';
-  $('osHint').textContent = `${os.length} stock${os.length===1?'':'s'} looking stretched down (${os.filter(s=>stockStatus(s)==='OS').length} strongly) · lowest momentum first`;
-  $('obHint').textContent = `${ob.length} stock${ob.length===1?'':'s'} looking stretched up (${ob.filter(s=>stockStatus(s)==='OB').length} strongly) · highest momentum first`;
+  $('osHint').textContent = `${os.length} stock${os.length===1?'':'s'} looking stretched down (${os.filter(s=>stockStatus(s)==='OS').length} strongly) · lowest momentum first · tap for chart`;
+  $('obHint').textContent = `${ob.length} stock${ob.length===1?'':'s'} looking stretched up (${ob.filter(s=>stockStatus(s)==='OB').length} strongly) · highest momentum first · tap for chart`;
   $('osList').innerHTML = os.length ? os.slice(0,8).map(s=>row(s,'c-os')).join('') + (os.length>8 ? `<button class="more" onclick="openScreener('OS')">+${os.length-8} more · open full screener ›</button>` : '') : none;
   $('obList').innerHTML = ob.length ? ob.slice(0,8).map(s=>row(s,'c-ob')).join('') + (ob.length>8 ? `<button class="more" onclick="openScreener('OB')">+${ob.length-8} more · open full screener ›</button>` : '') : none;
 }
@@ -930,7 +974,7 @@ const LIMIT = 15;
 function sortBy(k){ if (sortKey===k) sortAsc = !sortAsc; else { sortKey=k; sortAsc = k==='ticker'||k==='uo'||k==='rsi'||k==='vs200'; } renderTable(); }
 function renderTable(){
   const st = ST(), q = ($('q').value||'').toLowerCase(), watch = WATCH();
-  $('scrHint').textContent = `${META[S.active].uni} members, most stretched first`;
+  $('scrHint').textContent = `${META[S.active].uni} members, most stretched first · tap a row for its chart`;
   $('scrSum').textContent = watch.length ? `· ${watch.length} stocks, filter and sort` : '· no stock data yet';
   const cnt = k => watch.filter(s => stockStatus(s)===k).length;
   const chips = [['ALL','All',watch.length],['XOS','▼ Oversold side',cnt('OS')+cnt('WOS')],['XOB','▲ Overbought side',cnt('OB')+cnt('WOB')]];
@@ -947,7 +991,7 @@ function renderTable(){
     const uc = k==='OS'||k==='WOS' ? 'c-os' : k==='OB'||k==='WOB' ? 'c-ob' : '';
     const rc = s.rsi==null?'': s.rsi<st.rsiLow?'c-os': s.rsi>st.rsiHigh?'c-ob':'';
     const bar = s.uo==null?'': `<span class="mini" style="background:linear-gradient(to right,rgba(52,211,153,.4) 0 ${st.osTrig}%,#1a2336 ${st.osTrig}% ${st.obTrig}%,rgba(251,113,133,.4) ${st.obTrig}% 100%)"><i style="left:${Math.max(0,Math.min(100,s.uo))}%"></i></span>`;
-    return `<tr><td><b style="color:#fff">${esc(s.ticker)}</b><div style="font-size:10px;color:var(--mut);font-family:system-ui">${esc(s.name||'')}</div></td>
+    return `<tr class="clk" data-stk="${esc(s.ticker)}" tabindex="0"><td><b style="color:#fff">${esc(s.ticker)}</b><div style="font-size:10px;color:var(--mut);font-family:system-ui">${esc(s.name||'')}</div></td>
       <td class="${uc}">${fx(s.uo)}${bar}</td><td class="${rc}">${fx(s.rsi)}</td>
       <td>${s.vs200==null?'—':sg(s.vs200)}</td><td style="text-align:right">${ST_BADGE[k]}</td>
       <td>${AUTO?'':`<button class="x" title="Remove" data-t="${esc(s.ticker)}" onclick="delStock(this.dataset.t)">×</button>`}</td></tr>`;
@@ -1234,6 +1278,138 @@ function resetAll(){ if (confirm('Erase all saved settings and manual data in th
 /* ================= start ================= */
 loadAuto().then(() => { logChanges(); renderAll(); });
 
+
+/* ================= stock chart sheet ================= */
+let STK = null, STK_P = null, stkSym = null, stkView = 'px', stkRange = 126, stkHover = null, stkGeo = null, stkSer = null, stkLast = null;
+function loadStocks(){
+  if (STK) return Promise.resolve(STK);
+  if (STK_P) return STK_P;
+  STK_P = (async () => {
+    for (const u of ['data/stocks.json', '../data/stocks.json']){
+      try { const r = await fetch(u + '?t=' + Date.now(), {cache:'no-store'}); if (r.ok){ const j = await r.json(); if (j && j.px){ STK = j; return j; } } } catch(e){}
+    }
+    return null;
+  })();
+  STK_P.then(r => { if (!r) STK_P = null; });
+  return STK_P;
+}
+function stkSma(a, n){
+  return a.map((_, i) => { if (i < n-1) return null; let s = 0; for (let k = i-n+1; k <= i; k++){ if (a[k] == null) return null; s += a[k]; } return s/n; });
+}
+function stkRsi(a, n = 14){
+  const idx = [], v = []; a.forEach((x, i) => { if (x != null){ idx.push(i); v.push(x); } });
+  const out = new Array(a.length).fill(null); if (v.length <= n) return out;
+  let g = 0, l = 0;
+  for (let i = 1; i <= n; i++){ const d = v[i]-v[i-1]; if (d > 0) g += d; else l -= d; }
+  g /= n; l /= n; out[idx[n]] = l === 0 ? 100 : 100 - 100/(1+g/l);
+  for (let i = n+1; i < v.length; i++){ const d = v[i]-v[i-1]; g = (g*(n-1) + Math.max(d,0))/n; l = (l*(n-1) + Math.max(-d,0))/n; out[idx[i]] = l === 0 ? 100 : 100 - 100/(1+g/l); }
+  return out;
+}
+function openStock(t){
+  if (!t) return;
+  stkSym = t; stkHover = null; stkSer = null; stkLast = document.activeElement;
+  const w = WATCH().find(s => s.ticker === t) || {ticker: t};
+  $('stkT').textContent = t + (w.name ? ' · ' + w.name : '');
+  const k = w.uo != null ? stockStatus(w) : null;
+  $('stkS').innerHTML = [w.sector ? esc(w.sector) : '', k ? ST_BADGE[k] : ''].filter(Boolean).join(' ');
+  $('stkLink').href = 'https://finance.yahoo.com/quote/' + encodeURIComponent(t) + '/chart';
+  $('stk').hidden = false; document.body.classList.add('noscroll');
+  stkRender();
+  loadStocks().then(d => { if (stkSym === t){ stkRender(); } });
+  setTimeout(() => $('stkX').focus(), 30);
+}
+function closeStock(){
+  $('stk').hidden = true; document.body.classList.remove('noscroll'); stkSym = null;
+  if (stkLast && stkLast.focus) { try { stkLast.focus(); } catch(e){} }
+}
+function stkRender(){
+  const t = stkSym; if (!t) return;
+  const st = ST(), w = WATCH().find(s => s.ticker === t) || {};
+  const px = STK && STK.px && STK.px[t];
+  let c = null, price = null;
+  if (px){
+    c = px.map(v => v == null ? null : v/100);
+    const s50 = stkSma(c, 50), rsi = stkRsi(c, 14);
+    stkSer = c.map((v, i) => ({d: STK.dates[i], c: v, s50: s50[i], rsi: rsi[i]}));
+    price = c[c.length-1];
+  } else stkSer = null;
+  const nn = (v, f) => v == null ? '—' : f(v);
+  const last = c ? c.length-1 : -1, at = n => (c && last-n >= 0 && c[last-n] != null) ? c[last-n] : null;
+  const chg = (a, b) => (a != null && b) ? (a/b - 1)*100 : null;
+  const hi6 = c ? Math.max(...c.slice(-126).filter(v => v != null)) : null;
+  const items = [
+    ['Last close', price == null ? '—' : '$' + price.toFixed(2), chg(price, at(1)) != null ? `<span class="${chg(price,at(1))>=0?'c-os':'c-ob'}" style="font-size:11px;font-weight:600"> ${sg(chg(price,at(1)),1)} today</span>` : ''],
+    ['Momentum', nn(w.uo, v => fx(v,0)), ''],
+    ['RSI', nn(w.rsi, v => fx(v,0)), ''],
+    ['Past 3 months', nn(chg(price, at(63)), v => sg(v,1)), ''],
+    ['From 6-month high', nn(chg(price, hi6), v => sg(v,1)), ''],
+    ['vs 200-day average', nn(w.vs200, v => sg(v,1)), '']
+  ];
+  const cls = [ '', w.uo != null ? (w.uo <= st.osWatch ? 'c-os' : w.uo >= st.obWatch ? 'c-ob' : '') : '', w.rsi != null ? (w.rsi < st.rsiLow ? 'c-os' : w.rsi > st.rsiHigh ? 'c-ob' : '') : '', '', '', '' ];
+  $('stkK').innerHTML = items.map((it, i) => `<div class="stk-n"><div class="l">${it[0]}</div><div class="v mono ${cls[i]}">${it[1]}${it[2]}</div></div>`).join('');
+  $('stkLeg').textContent = stkView === 'px' ? 'White: closing price · Amber: 50-day average' : `RSI: below ${st.rsiLow} is oversold, above ${st.rsiHigh} is overbought`;
+  stkDraw();
+}
+function stkDraw(){
+  const cv = $('stkCv'), box = cv.parentElement, msg = $('stkMsg'), dpr = window.devicePixelRatio || 1;
+  const W = box.clientWidth, H = box.clientHeight; if (!W || !H) return;
+  cv.width = W*dpr; cv.height = H*dpr; const g = cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+  $('stkTip').style.display = 'none'; stkGeo = null;
+  if (!stkSer){
+    msg.style.display = 'flex';
+    msg.innerHTML = STK_P && !STK ? 'Loading price history…' : 'Price history for this stock appears after the next automatic data update.';
+    return;
+  }
+  msg.style.display = 'none';
+  const key = stkView === 'px' ? 'c' : 'rsi', st = ST();
+  const pts = stkSer.slice(-stkRange);
+  const have = pts.filter(p => p[key] != null); if (have.length < 2){ msg.style.display = 'flex'; msg.textContent = 'Not enough history for this view.'; return; }
+  const L = 44, R = 12, T = 12, B = 22, pw = W-L-R, ph = H-T-B;
+  let lo, hi;
+  if (stkView === 'px'){ const a = []; pts.forEach(p => { if (p.c != null) a.push(p.c); if (p.s50 != null) a.push(p.s50); }); lo = Math.min(...a); hi = Math.max(...a); const pad = (hi-lo)*.08 || 1; lo -= pad; hi += pad; }
+  else { lo = 0; hi = 100; }
+  const X = i => L + (i/(pts.length-1))*pw, Y = v => T + (1-(v-lo)/(hi-lo))*ph;
+  g.font = '10px ui-monospace,Menlo,monospace'; g.fillStyle = '#5b6a82'; g.strokeStyle = 'rgba(42,56,80,.5)'; g.lineWidth = 1; g.textAlign = 'right';
+  if (stkView === 'px'){ for (let k = 0; k <= 4; k++){ const v = lo + (hi-lo)*k/4; g.beginPath(); g.moveTo(L,Y(v)); g.lineTo(L+pw,Y(v)); g.stroke(); g.fillText(v >= 100 ? v.toFixed(0) : v.toFixed(1), L-6, Y(v)+3); } }
+  else {
+    g.fillStyle = 'rgba(52,211,153,.10)'; g.fillRect(L, Y(st.rsiLow), pw, Y(0)-Y(st.rsiLow));
+    g.fillStyle = 'rgba(251,113,133,.10)'; g.fillRect(L, Y(100), pw, Y(st.rsiHigh)-Y(100));
+    g.setLineDash([4,4]); g.strokeStyle = 'rgba(148,163,184,.35)'; [st.rsiLow, 50, st.rsiHigh].forEach(v => { g.beginPath(); g.moveTo(L,Y(v)); g.lineTo(L+pw,Y(v)); g.stroke(); }); g.setLineDash([]);
+    g.fillStyle = '#5b6a82'; [0,st.rsiLow,50,st.rsiHigh,100].forEach(v => g.fillText(v, L-6, Y(v)+3));
+  }
+  g.fillStyle = '#5b6a82'; g.textAlign = 'center';
+  [0, Math.floor((pts.length-1)/2), pts.length-1].forEach(i => g.fillText(pts[i].d.slice(5), Math.min(Math.max(X(i), L+18), W-R-18), H-6));
+  const line = (k, color, w) => { g.beginPath(); let on = false; pts.forEach((p, i) => { if (p[k] == null){ on = false; return; } const x = X(i), y = Y(p[k]); if (!on){ g.moveTo(x,y); on = true; } else g.lineTo(x,y); }); g.strokeStyle = color; g.lineWidth = w; g.lineJoin = 'round'; g.stroke(); };
+  if (stkView === 'px'){
+    const grad = g.createLinearGradient(0,T,0,T+ph); grad.addColorStop(0,'rgba(129,140,248,.16)'); grad.addColorStop(1,'rgba(129,140,248,0)');
+    g.beginPath(); let started = false, lx = 0; pts.forEach((p, i) => { if (p.c == null) return; const x = X(i), y = Y(p.c); if (!started){ g.moveTo(x,y); started = true; } else g.lineTo(x,y); lx = x; });
+    g.lineTo(lx, T+ph); g.lineTo(X(pts.findIndex(p => p.c != null)), T+ph); g.closePath(); g.fillStyle = grad; g.fill();
+    line('s50', '#fbbf24', 1.3); line('c', '#e8edf5', 1.8);
+  } else line('rsi', '#818cf8', 1.8);
+  stkGeo = {pts, X, Y, L, pw, T, ph, W, key};
+  if (stkHover != null && pts[stkHover] && pts[stkHover][key] != null){
+    const p = pts[stkHover], x = X(stkHover);
+    g.strokeStyle = 'rgba(255,255,255,.3)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x,T); g.lineTo(x,T+ph); g.stroke();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(x, Y(p[key]), 3.5, 0, 7); g.fill();
+    const tip = $('stkTip'); tip.style.display = 'block';
+    tip.innerHTML = `<b>${fmtDate(p.d)}</b><br>` + (stkView === 'px' ? `Close $${p.c.toFixed(2)}${p.s50 != null ? `<br>50-day $${p.s50.toFixed(2)}` : ''}` : `RSI ${p.rsi.toFixed(1)}`);
+    tip.style.left = Math.min(x + 12, W - 120) + 'px';
+  }
+}
+(function(){
+  const cv = $('stkCv');
+  const move = e => { if (!stkGeo) return; const r = cv.getBoundingClientRect(), x = e.clientX - r.left, n = stkGeo.pts.length;
+    const i = Math.max(0, Math.min(n-1, Math.round((x - stkGeo.L)/stkGeo.pw*(n-1)))); if (i !== stkHover){ stkHover = i; stkDraw(); } };
+  cv.addEventListener('pointermove', move); cv.addEventListener('pointerdown', move);
+  cv.addEventListener('pointerleave', () => { stkHover = null; if (stkSer) stkDraw(); });
+  $('stkView').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; stkView = b.dataset.v; setOn('stkView', b); stkHover = null; stkRender(); });
+  $('stkRange').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; stkRange = +b.dataset.v; setOn('stkRange', b); stkHover = null; stkDraw(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('stk').hidden) closeStock(); });
+  document.addEventListener('click', e => { const el = e.target.closest('[data-stk]'); if (el && !e.target.closest('button.x')) openStock(el.dataset.stk); });
+  document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-stk]')){ e.preventDefault(); openStock(e.target.dataset.stk); } });
+  window.addEventListener('resize', () => { if (!$('stk').hidden) stkDraw(); });
+})();
+
 /* service worker (offline shell; data stays network-first) */
 if ('serviceWorker' in navigator){
   const hadCtl = !!navigator.serviceWorker.controller;
@@ -1241,5 +1417,6 @@ if ('serviceWorker' in navigator){
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadCtl) toast('Updated. Reload for the latest version.'); });
 }
 </script>
+
 </body>
 </html>

@@ -1,6 +1,6 @@
 /* Market Stretch Terminal service worker.
    Bump VERSION with every release; it must match the version stamp in index.html. */
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const CACHE = 'mst-' + VERSION;
 const SHELL = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
@@ -31,7 +31,7 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;            // never touch third-party APIs (FMP etc.)
 
-  if (url.pathname.endsWith('/market.json')) {           // data: always try fresh first
+  if (url.pathname.endsWith('/market.json') || url.pathname.endsWith('/stocks.json')) {           // data: always try fresh first
     e.respondWith(networkFirst(new Request(req.url, { cache: 'no-store' }), url.origin + url.pathname));
     return;
   }

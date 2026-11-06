@@ -452,6 +452,32 @@ def build_index(sym, df, cons, prices, eq_df):
     return dict(index=index, history=history, watch=watch)
 
 
+STOCKS_OUT = os.path.join(os.path.dirname(OUT), "stocks.json")
+STOCK_DAYS = 175   # about 6 months shown, plus 49 days of warm-up so the 50-day average is complete
+
+
+def write_stock_history(cons, prices, generated):
+    """Daily closes (in cents) for every index member, for the in-app stock chart. Loaded only when a stock is tapped."""
+    ref = next((prices[k] for k in ("SPY", "QQQM", "DIA") if k in prices), None)
+    if ref is None:
+        return
+    dates = ref.index[-STOCK_DAYS:]
+    tickers = sorted({tk for lst in cons.values() for tk, _, _ in lst})
+    px = {}
+    for tk in tickers:
+        p = prices.get(tk)
+        if p is None:
+            continue
+        c = p["Close"].astype(float).reindex(dates)
+        if c.notna().sum() < 60:
+            continue
+        px[tk] = [None if not np.isfinite(v) else int(round(v * 100)) for v in c.values]
+    out = dict(generated=generated, dates=[d.strftime("%Y-%m-%d") for d in dates], px=px)
+    with open(STOCKS_OUT, "w") as f:
+        json.dump(out, f, separators=(",", ":"))
+    print(f"Wrote {STOCKS_OUT} ({os.path.getsize(STOCKS_OUT) / 1024:.0f} KB, {len(px)} stocks)")
+
+
 def main():
     prev = {}
     if os.path.exists(OUT):
@@ -526,6 +552,10 @@ def main():
     with open(OUT, "w") as f:
         json.dump(payload, f, separators=(",", ":"))
     print(f"Wrote {OUT} ({os.path.getsize(OUT) / 1024:.0f} KB)")
+    try:
+        write_stock_history(cons, prices, payload["generated"])
+    except Exception as e:  # noqa
+        print(f"stock price history skipped ({e})", file=sys.stderr)
 
 
 if __name__ == "__main__":

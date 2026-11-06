@@ -69,3 +69,5 @@ Base cases: the thresholds live in `PRESETS` near the top of the script in `app/
 
 ---
 © 2026 LAZLAB Creations. All Rights Reserved. · lazlab.io@gmail.com
+
+**Stock charts:** tapping a stock opens a 3- or 6-month chart. Its closing prices come from `data/stocks.json` (written by the same daily update, about 0.5 MB, loaded only when a chart is opened).
