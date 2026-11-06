@@ -116,6 +116,22 @@ def fetch_prices(tickers, period="2y", chunk=80):
             except Exception:
                 pass
         time.sleep(1.5)
+    # Retry anything that failed (e.g. "database is locked" from parallel downloads), one at a time.
+    missing = [t for t in tickers if t not in out]
+    if missing and len(missing) <= 60:
+        print(f"  retrying {len(missing)} missing tickers one by one", file=sys.stderr)
+        for t in missing:
+            try:
+                d = yf.download(t, period=period, interval="1d", auto_adjust=False, progress=False, threads=False)
+                if isinstance(d.columns, pd.MultiIndex):
+                    d.columns = d.columns.get_level_values(0)
+                cols = ["High", "Low", "Close"] + (["Volume"] if "Volume" in d.columns else [])
+                sub = d[cols].dropna(subset=["High", "Low", "Close"])
+                if len(sub) > 30:
+                    out[t] = sub
+            except Exception:
+                pass
+            time.sleep(0.5)
     return out
 
 
@@ -493,6 +509,17 @@ def main():
     print(f"Downloading {len(everything)} tickers…")
     prices = fetch_prices(everything)
 
+    # If Yahoo handed back older data than we already have, wait and try once more.
+    old_newest0 = max((v["index"]["date"] for v in prev.get("indices", {}).values()), default="")
+    def newest_close(pr):
+        return max((pr[k].index[-1].strftime("%Y-%m-%d") for k in INDICES if k in pr), default="")
+    if old_newest0 and newest_close(prices) < old_newest0:
+        print("Yahoo returned older data than we already have; waiting 90s and retrying once.", file=sys.stderr)
+        time.sleep(90)
+        retry = fetch_prices(everything)
+        if newest_close(retry) >= newest_close(prices):
+            prices = retry
+
     for sym in etfs:
         if sym not in prices:
             fb = fallback_etf(sym)
@@ -532,8 +559,13 @@ def main():
     newest = max(v["index"]["date"] for v in fresh)
     old_newest = max((v["index"]["date"] for v in prev.get("indices", {}).values()), default="")
     if newest < old_newest:
-        print("New data is older than existing data; leaving file untouched.", file=sys.stderr)
-        sys.exit(1)
+        print("New data is older than existing data; leaving market.json untouched (a later attempt will update it).", file=sys.stderr)
+        if not os.path.exists(STOCKS_OUT):
+            try:
+                write_stock_history(cons, prices, prev.get("generated", ""))
+            except Exception as e:  # noqa
+                print(f"stock price history skipped ({e})", file=sys.stderr)
+        sys.exit(0)
 
     # Long-history signal stats (3 extra downloads). Reuse the previous stats if this fails.
     stats = prev.get("stats", {})
