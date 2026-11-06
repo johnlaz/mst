@@ -21,6 +21,7 @@
   --warn:#fbbf24; --acc:#818cf8; --acc-bg:rgba(129,140,248,.14);
 }
 *{box-sizing:border-box}
+body{background:radial-gradient(900px 520px at 12% -8%,rgba(129,140,248,.13),transparent 60%),radial-gradient(800px 480px at 92% 4%,rgba(52,211,153,.08),transparent 60%),var(--bg);background-attachment:fixed}
 html,body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
 button,input,select,textarea{font:inherit;color:inherit}
 ::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:#090d16}::-webkit-scrollbar-thumb{background:#1e293b;border-radius:3px}
@@ -44,7 +45,9 @@ h1{font-size:18px;margin:0;font-weight:700;letter-spacing:-.01em}
 .pill.wob{color:var(--ob);background:transparent;border-color:rgba(251,113,133,.5)}
 .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
 .banner{margin:14px 0 0;padding:9px 12px;border-radius:10px;font-size:12px;border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.08);color:#fcd34d;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card,.tile{background:linear-gradient(155deg,rgba(255,255,255,.065),rgba(255,255,255,.015) 45%,rgba(129,140,248,.035)),rgba(14,19,31,.72);border:1px solid rgba(160,180,220,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 8px 28px rgba(0,0,0,.38),0 0 0 1px rgba(0,0,0,.2);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%)}
+.card{border-radius:14px;padding:16px}
+.tile:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 8px 28px rgba(0,0,0,.38),0 0 22px rgba(129,140,248,.14)}
 .card h2{font-size:14px;margin:0;font-weight:700}
 .card .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:12px;flex-wrap:wrap}
 .hint{font-size:11px;color:var(--mut);margin-top:2px}
@@ -67,7 +70,7 @@ h1{font-size:18px;margin:0;font-weight:700;letter-spacing:-.01em}
 .big{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:8px}
 .note{font-size:11px;color:var(--mut);margin-top:4px}
 .c-os{color:var(--os)}.c-ob{color:var(--ob)}.c-warn{color:var(--warn)}.c-mut{color:var(--mut)}
-.tile{text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;color:inherit}
+.tile{text-align:left;border-radius:14px;padding:12px 14px;cursor:pointer;color:inherit}
 .tile:hover{border-color:var(--line2)}
 .tile.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
 .gauge{position:relative;height:8px;border-radius:99px;background:#1a2336;margin-top:12px}
@@ -79,7 +82,10 @@ h1{font-size:18px;margin:0;font-weight:700;letter-spacing:-.01em}
 .gl{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:6px}
 .intro{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;font-size:12px;line-height:1.5;color:var(--mut);background:#0a0f19;border:1px solid var(--line);border-radius:9px;padding:9px 12px;margin-bottom:14px}
 .intro b{color:#cbd5e1}
-.hero{display:flex;gap:22px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.hero #presetTabs{width:100%}.hero #presetTabs button{flex:1}
+#presetDesc{min-height:3.4em}
+@media(max-width:1000px){.hero{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.hero>div:first-child{grid-column:1/-1}}
 .hero .st{font-size:22px;font-weight:800;letter-spacing:-.01em}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:560px){.cols{grid-template-columns:1fr}}
@@ -159,7 +165,7 @@ body.noscroll{overflow:hidden}
 .stk{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
 .stk[hidden]{display:none}
 .stk-bg{position:absolute;inset:0;background:rgba(3,6,12,.72);backdrop-filter:blur(2px)}
-.stk-card{position:relative;width:100%;max-width:720px;max-height:calc(100vh - 32px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:0 20px 60px rgba(0,0,0,.55)}
+.stk-card{position:relative;width:100%;max-width:720px;max-height:calc(100vh - 32px);overflow:auto;background:linear-gradient(155deg,rgba(255,255,255,.08),rgba(255,255,255,.02) 45%),rgba(14,19,31,.82);-webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);border:1px solid rgba(160,180,220,.2);border-radius:14px;padding:16px 18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 20px 60px rgba(0,0,0,.55),0 0 40px rgba(129,140,248,.10)}
 .stk-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .stk-t{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.01em}
 .stk-s{font-size:12px;color:var(--mut);margin-top:3px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -214,7 +220,7 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
   .col{gap:10px}
   .ir{grid-template-columns:78px 1fr}
   .big{font-size:22px}
-  .hero{gap:14px}
+  .hero{gap:14px;grid-template-columns:1fr}
   .hero>div{min-width:0 !important;width:100%}
   .hero .st{font-size:20px}
   .tabs{width:100%}
@@ -260,7 +266,7 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
   <section class="card" style="margin-top:14px">
     <div id="intro" class="intro"><span><b>What this shows:</b> whether the market is stretched <span class="c-os">down (oversold: bounces get more likely)</span> or <span class="c-ob">up (overbought: pullbacks get more likely)</span>. It reads where things stand today; it doesn't predict.</span><button class="x" onclick="hideIntro()" title="Hide this" aria-label="Hide this">✕</button></div>
     <div class="hero">
-      <div style="min-width:240px">
+      <div>
         <div class="lbl" id="heroLbl">Status</div>
         <div id="heroSt" class="st" style="margin-top:6px">—</div>
         <div id="heroSub" class="note" style="font-size:12px"></div>
@@ -268,9 +274,9 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
       <div>
         <div class="lbl" style="margin-bottom:6px">How sensitive?</div>
         <div class="tabs" id="presetTabs"></div>
-        <div class="note" id="presetDesc" style="max-width:300px"></div>
+        <div class="note" id="presetDesc"></div>
       </div>
-      <div style="min-width:220px">
+      <div>
         <div class="row" style="justify-content:space-between;font-size:12px"><span class="c-os">▼ Oversold signals</span><span id="pipOSn" class="mono"></span></div>
         <div id="pipOS" class="pips os" style="margin:5px 0 10px"></div>
         <div class="row" style="justify-content:space-between;font-size:12px"><span class="c-ob">▲ Overbought signals</span><span id="pipOBn" class="mono"></span></div>
@@ -400,7 +406,7 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
     </details>
   </div>
 
-  <footer>Screening aid only, not investment advice. Data is end-of-day, built after the close, and nothing here is live. <span id="verStamp" style="opacity:.6;white-space:nowrap">v1.1.0</span></footer>
+  <footer>Screening aid only, not investment advice. Data is end-of-day, built after the close, and nothing here is live. <span id="verStamp" style="opacity:.6;white-space:nowrap">v1.1.1</span></footer>
 </main>
 
 <div id="veil" onclick="closeDrawer()"></div>

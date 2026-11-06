@@ -1,6 +1,6 @@
 /* Market Stretch Terminal service worker.
    Bump VERSION with every release; it must match the version stamp in index.html. */
-const VERSION = '1.1.0';
+const VERSION = '1.1.1';
 const CACHE = 'mst-' + VERSION;
 const SHELL = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
