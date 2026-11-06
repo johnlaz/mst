@@ -97,6 +97,9 @@ The sensitivity thresholds live in `PRESETS` near the top of the script in `app/
 
 ## Changelog
 
+**v1.1.2**
+- Menu has a contact box to email a note to yourself; copyright in the app footer.
+
 **v1.1.1**
 - Sensitivity toggle now stays put across tablet and phone sizes.
 - Glass-style cards.

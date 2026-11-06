@@ -406,13 +406,22 @@ footer{font-size:11px;color:var(--dim);padding:18px 0 30px;text-align:center}
     </details>
   </div>
 
-  <footer>Screening aid only, not investment advice. Data is end-of-day, built after the close, and nothing here is live. <span id="verStamp" style="opacity:.6;white-space:nowrap">v1.1.1</span></footer>
+  <footer>Screening aid only, not investment advice. Data is end-of-day, built after the close, and nothing here is live. <span id="verStamp" style="opacity:.6;white-space:nowrap">v1.1.2</span><br>© 2026 LAZLAB Creations. All Rights Reserved. · <a href="mailto:lazlab.io@gmail.com" style="color:inherit">lazlab.io@gmail.com</a></footer>
 </main>
 
 <div id="veil" onclick="closeDrawer()"></div>
 <aside id="drawer" aria-hidden="true">
   <div class="dh"><b>Menu</b><button class="btn sm" onclick="closeDrawer()">Close</button></div>
   <div class="db">
+
+    <fieldset>
+      <legend>Contact / note to self</legend>
+      <textarea id="noteTxt" rows="3" placeholder="Type a thought, idea or bug…" style="margin-bottom:8px"></textarea>
+      <div class="row" style="justify-content:space-between;align-items:center;gap:10px">
+        <button class="btn" onclick="sendNote()">Email it</button>
+        <a href="mailto:lazlab.io@gmail.com" class="note" style="margin:0;color:var(--acc);text-decoration:none">lazlab.io@gmail.com</a>
+      </div>
+    </fieldset>
 
     <fieldset class="autoinfo">
       <legend>Auto data</legend>
@@ -1127,6 +1136,12 @@ function openDrawer(){
   }
   renderFmp(); $('fmpMsg').textContent = '';
   $('veil').style.display='block'; dr.classList.add('open'); dr.setAttribute('aria-hidden','false');
+}
+function sendNote(){
+  const t = ($('noteTxt').value || '').trim();
+  const v = ($('verStamp') || {}).textContent || '';
+  const body = (t ? t + '\n\n' : '') + '— sent from Market Stretch Terminal ' + v;
+  location.href = 'mailto:lazlab.io@gmail.com?subject=' + encodeURIComponent('Market Stretch Terminal note') + '&body=' + encodeURIComponent(body);
 }
 function closeDrawer(){ $('veil').style.display='none'; $('drawer').classList.remove('open'); $('drawer').setAttribute('aria-hidden','true'); }
 function watchToCSV(){ return ['ticker,uo,rsi,vs200,name,sector', ...S.manual[S.active].watch.map(s => [s.ticker, s.uo??'', s.rsi??'', s.vs200??'', (s.name||'').replace(/,/g,' '), (s.sector||'').replace(/,/g,' ')].join(','))].join('\n'); }
