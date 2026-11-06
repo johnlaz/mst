@@ -1,25 +1,41 @@
+<p align="center"><img src="docs/banner.svg" alt="Market Stretch Terminal: one daily check, is the market stretched?" width="100%"></p>
+
 # Market Stretch Terminal
 
-End-of-day overbought / oversold monitor for the Nasdaq-100 (QQQM), S&P 500 (SPY) and Dow (DIA).
-One check after the close, one plain reading per index. No account, no API key. Not live: a GitHub Action rebuilds the data after each US close.
+One daily check: is the market stretched? After each US close, Market Stretch Terminal reads the Nasdaq-100 (QQQM), S&P 500 (SPY) and Dow (DIA) and tells you in plain words whether each is stretched **down** (oversold, bounces get more likely) or **up** (overbought, pullbacks get more likely). Pick how sensitive you want it, glance at the answer, and get on with your day. Free, no account, no API key, installs like an app.
 
-**Live:** https://johnlaz.github.io/mst/ (landing) · https://johnlaz.github.io/mst/app/ (app, installable as a PWA)
+It reads where things stand. It does not predict.
 
-![Data flow: Yahoo Finance and Wikipedia feed a GitHub Action, which writes data/market.json for the app](docs/data-flow.svg)
+## Live
 
-## What it does
-- Shows whether each index is stretched down (oversold) or up (overbought), in plain words.
-- Reads the Ultimate Oscillator, RSI, breadth (share of stocks above their 50 and 200-day averages), VIX, distance from the peak and moving averages, new highs/lows and volume.
-- Three sensitivity levels (pullback ~8%, correction ~13%, bear market ~25% drop) instead of detailed criteria.
-- Works offline with the last data it saw, and installs to a phone or desktop home screen.
-- Screening aid only, not investment advice.
+| | URL |
+|---|---|
+| Landing page | https://johnlaz.github.io/mst/ |
+| App | https://johnlaz.github.io/mst/app/ |
+
+Install the app from its page: **Add to Home Screen** on iPhone, or the install icon in Chrome/Edge.
+
+## Why you'll like it
+
+- **One plain answer per index.** A status like *Leaning oversold* or *Neutral*, with the reason written out in a sentence.
+- **Three sensitivity settings, not a pile of knobs.** Pullback (~8% drop), Correction (~13%) or Bear market (~25%). Pick one and every threshold follows.
+- **Several signals, one verdict.** Momentum score, RSI, market fear (VIX) and distance from the peak, with a confluence check that shows how many agree.
+- **Market internals.** Breadth (how many stocks are above their 50 and 200-day averages), new highs and lows, trading volume, and how long the signal has lasted.
+- **Tap any stock for its chart.** 3 or 6 months of closing prices, a 50-day average, RSI, hover or touch readout, and a link out to the full Yahoo Finance chart.
+- **See what happened after past signals.** A plain-language look back at what followed earlier oversold and overbought readings, so you know how much weight to give today's.
+- **Your own pullback level.** Type a percentage and see where it sits against the market's history.
+- **Built to be glanced at.** Clean glass-style cards, easy to read on a phone or tablet, works offline with the last data it saw.
+
+![How Market Stretch Terminal works](docs/data-flow.svg)
 
 ## Repo layout
+
 ```
 /
 ├── index.html              landing page (no manifest, no service worker)
 ├── README.md
 ├── docs/
+│   ├── banner.svg          README banner
 │   └── data-flow.svg       README visual
 ├── app/
 │   ├── index.html          the whole app
@@ -29,45 +45,67 @@ One check after the close, one plain reading per index. No account, no API key. 
 │   ├── icon-512.png
 │   └── apple-touch-icon.png
 ├── data/
-│   └── market.json         built by the Action; do not edit by hand
+│   ├── market.json         built by the Action; do not edit by hand
+│   └── stocks.json         6 months of closing prices for the stock charts, same Action
 ├── scripts/
 │   ├── update_data.py
 │   └── requirements.txt
 └── .github/workflows/
     └── update-data.yml     weekday evenings after the US close (3 attempts: 22:30, 23:30, 01:15 UTC)
 ```
-`data/` stays at the repo root. The app loads `data/market.json` and falls back to `../data/market.json`, which is where the Action writes it.
 
-## AI / model setup
+`data/` stays at the repo root. The app loads `data/market.json` and falls back to `../data/market.json`, which is where the Action writes it. `stocks.json` (about 0.5 MB) is fetched only when you open a stock chart.
+
+## Data sources
+
+| Data | Source | Notes |
+|---|---|---|
+| Prices and volume | Yahoo Finance via `yfinance` | Keyless. End-of-day, rebuilt after each US close. |
+| Index constituents | Wikipedia, then Nasdaq's public list | If both fail, the previous list is reused. |
+| Backup for the three ETFs | Stooq, then Financial Modeling Prep (optional key) | Used only if Yahoo fails. |
+
+Yahoo and Wikipedia are unofficial sources and can change without notice. Nasdaq-100 top-10 weight is approximate (market-cap share); S&P 500 weights are not computed.
+
+## AI and model setup
+
 None. The app does not use an AI provider.
 
-## Data & privacy
-- Prices come from Yahoo Finance (via `yfinance`) and index constituents from Wikipedia. Both are unofficial sources and can change without notice.
-- Settings and any manual entries are kept in your browser's local storage. Nothing is sent to a server of ours.
+## Data and privacy
+
+- There is no server, account or database.
+- Settings and any manual entries stay in your browser's local storage.
 - An optional free FMP key, if you paste one into the app's Menu, is stored in your browser only and is never included in exports.
 
-## Deploy / update
+## Deploy and update
+
 1. Settings → Pages → Source: Deploy from a branch → `main` / `/ (root)`.
-2. Actions → "Update market data" → **Run workflow** (first run takes a few minutes and commits `data/market.json`).
+2. Actions → "Update market data" → **Run workflow** (first run takes a few minutes and commits `data/market.json` and `data/stocks.json`).
 3. If the run fails at the commit step: Settings → Actions → General → Workflow permissions → **Read and write permissions**.
 4. To release an app change: edit `app/`, bump `VERSION` in `app/sw.js` **and** the version stamp in `app/index.html`, then push to `main`. Installed copies update on the next open.
 
 Optional: repo secret `FMP_API_KEY`, used only as a last-resort backup source for the three index ETFs if Yahoo and Stooq both fail.
 
-Base cases: the thresholds live in `PRESETS` near the top of the script in `app/index.html`. The "what followed past signals" table uses `PRESET_RULES` in `scripts/update_data.py`; keep the two in step.
+The sensitivity thresholds live in `PRESETS` near the top of the script in `app/index.html`. The "what followed past signals" table uses `PRESET_RULES` in `scripts/update_data.py`; keep the two in step.
 
 ## If something looks wrong
+
 - Header says data is N days old: the Action failed or Yahoo blocked it that day. Check the Actions log and re-run.
 - Site not updating after a successful run: confirm Pages is deploying from the branch the Action commits to.
 - App looks stale after a release: reload once; the new service worker takes over on the next load.
-- If Wikipedia's tables change, the script reuses the previous constituent list.
-- Nasdaq-100 top-10 weight is approximate (market-cap share). S&P 500 weights are not computed.
+- A stock chart says history appears after the next update: run the workflow once so `data/stocks.json` exists.
 - Without `data/market.json` the app falls back to manual entry (Update data menu).
 
 ## Changelog
-- **1.0.0**: landing page at the repo root, app moved to `/app`, installable PWA (manifest, service worker, icons), version stamp, new README.
 
----
+**v1.1.1**
+- Sensitivity toggle now stays put across tablet and phone sizes.
+- Glass-style cards.
+
+**v1.1.0**
+- Tap any stock for a 3 or 6 month chart with 50-day average and RSI.
+- The data update now retries failed tickers and handles stale Yahoo responses.
+
+**v1.0.0**
+- Landing page at the repo root, app moved to `/app`, installable PWA (manifest, service worker, icons), version stamp.
+
 © 2026 LAZLAB Creations. All Rights Reserved. · lazlab.io@gmail.com
-
-**Stock charts:** tapping a stock opens a 3- or 6-month chart. Its closing prices come from `data/stocks.json` (written by the same daily update, about 0.5 MB, loaded only when a chart is opened).

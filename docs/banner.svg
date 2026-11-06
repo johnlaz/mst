@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" role="img" aria-labelledby="t d">
+  <title id="t">Market Stretch Terminal banner</title><desc id="d">Market Stretch Terminal, a daily overbought and oversold check for QQQM, SPY and DIA, over a price line moving between an oversold zone and an overbought zone.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#1a1f4a"/></linearGradient>
+    <linearGradient id="ln" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#34d399"/><stop offset=".5" stop-color="#818cf8"/><stop offset="1" stop-color="#fb7185"/></linearGradient>
+  </defs>
+  <rect width="1200" height="300" rx="18" fill="url(#bg)"/>
+  <rect x="520" y="34" width="640" height="62" rx="8" fill="#fb7185" fill-opacity=".10"/>
+  <rect x="520" y="204" width="640" height="62" rx="8" fill="#34d399" fill-opacity=".10"/>
+  <g stroke="#ffffff" stroke-opacity=".07"><path d="M520 150H1160M520 96H1160M520 204H1160"/></g>
+  <path d="M530 238 L590 252 L650 226 L710 176 L770 190 L830 128 L890 108 L950 140 L1010 70 L1070 54 L1130 80" fill="none" stroke="url(#ln)" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="1130" cy="80" r="7" fill="#fb7185"/><circle cx="590" cy="252" r="7" fill="#34d399"/>
+  <text x="536" y="58" text-anchor="start" font-family="Segoe UI,Helvetica,Arial,sans-serif" font-size="13" font-weight="700" fill="#fb7185" fill-opacity=".8">OVERBOUGHT</text>
+  <text x="1150" y="258" text-anchor="end" font-family="Segoe UI,Helvetica,Arial,sans-serif" font-size="13" font-weight="700" fill="#34d399" fill-opacity=".8">OVERSOLD</text>
+  <text x="60" y="140" font-family="Segoe UI,Helvetica,Arial,sans-serif" font-size="58" font-weight="800" fill="#ffffff" letter-spacing="-1.5">Market Stretch</text>
+  <text x="60" y="200" font-family="Segoe UI,Helvetica,Arial,sans-serif" font-size="58" font-weight="800" fill="#ffffff" letter-spacing="-1.5">Terminal</text>
+  <text x="62" y="238" font-family="Segoe UI,Helvetica,Arial,sans-serif" font-size="22" fill="#cbd5e1">One daily check: is the market stretched?</text>
+  <text x="62" y="272" font-family="Segoe UI,Helvetica,Arial,sans-serif" font-size="15" fill="#94a3b8">A LAZLAB Creations app · free · no account · no key</text>
+</svg>
