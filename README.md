@@ -34,7 +34,7 @@ One check after the close, one plain reading per index. No account, no API key. 
 │   ├── update_data.py
 │   └── requirements.txt
 └── .github/workflows/
-    └── update-data.yml     weekdays 22:30 UTC, after the US close
+    └── update-data.yml     weekday evenings after the US close (3 attempts: 22:30, 23:30, 01:15 UTC)
 ```
 `data/` stays at the repo root. The app loads `data/market.json` and falls back to `../data/market.json`, which is where the Action writes it.
 
