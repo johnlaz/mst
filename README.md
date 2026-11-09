@@ -89,13 +89,16 @@ The sensitivity thresholds live in `PRESETS` near the top of the script in `app/
 
 ## If something looks wrong
 
-- Header says data is N days old: the Action failed or Yahoo blocked it that day. Check the Actions log and re-run.
+- Header says data is missing trading days: the Action failed or Yahoo blocked it. Weekends are not counted. Check the Actions log and re-run.
 - Site not updating after a successful run: confirm Pages is deploying from the branch the Action commits to.
 - App looks stale after a release: reload once; the new service worker takes over on the next load.
 - A stock chart says history appears after the next update: run the workflow once so `data/stocks.json` exists.
 - Without `data/market.json` the app falls back to manual entry (Update data menu).
 
 ## Changelog
+
+**v1.1.3**
+- Data age now counts missed trading days, so weekends show "latest close" instead of "3 days old".
 
 **v1.1.2**
 - Menu has a contact box to email a note to yourself; copyright in the app footer.
